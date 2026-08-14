@@ -23,6 +23,7 @@ import { AuthService } from '../../../auth/auth.service';
           <a routerLink="/lost-pet-reports/mine" class="btn btn-ghost">Mis reportes</a>
           <a routerLink="/sightings/mine" class="btn btn-ghost">Mis avistamientos</a>
           <a routerLink="/contact-requests" class="btn btn-ghost">Solicitudes de contacto</a>
+          <a routerLink="/onboarding" class="btn btn-ghost">Ver tutorial de nuevo</a>
         </div>
       </div>
 
