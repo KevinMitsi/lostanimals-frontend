@@ -12,9 +12,9 @@ import { LostPetReportResponse } from '../../../../core/models';
   template: `
     <a
       [routerLink]="['/lost-pet-reports', report().id]"
-      class="flex gap-3 rounded-lg bg-[var(--color-surface)] p-3 hover:opacity-90"
+      class="flex gap-3 rounded-2xl bg-white p-3 shadow-[0_2px_14px_rgba(47,54,59,0.08)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(47,54,59,0.14)]"
     >
-      <div class="h-20 w-20 shrink-0 overflow-hidden rounded-md bg-white">
+      <div class="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-[var(--color-surface)]">
         @if (primaryImageUrl(); as url) {
           <img [src]="url" alt="" class="h-full w-full object-cover" />
         }

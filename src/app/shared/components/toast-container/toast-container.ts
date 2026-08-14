@@ -10,7 +10,7 @@ import { NotificationService } from '../../../core/notifications/notification.se
     >
       @for (toast of notifications.notifications(); track toast.id) {
         <div
-          class="pointer-events-auto w-full max-w-sm rounded-lg px-4 py-3 text-sm shadow-md"
+          class="pointer-events-auto w-full max-w-sm rounded-2xl px-4 py-3 text-sm shadow-[0_10px_30px_rgba(47,54,59,0.22)]"
           [class]="severityClass(toast.severity)"
           role="alert"
         >

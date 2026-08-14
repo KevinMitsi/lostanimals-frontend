@@ -17,36 +17,36 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
   imports: [ReactiveFormsModule, RouterLink],
   template: `
     <div class="mx-auto flex min-h-full max-w-md flex-col gap-6 px-4 py-8">
-      <h1 class="text-2xl font-semibold text-[var(--color-primary-strong)]">Restablecer contraseña</h1>
+      <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Restablecer contraseña</h1>
 
       @if (!token()) {
         <p class="text-[var(--color-alert-strong)]">
           Falta el token de recuperación en el enlace.
         </p>
       } @else if (done()) {
-        <div class="rounded-lg bg-[var(--color-surface)] p-4 text-sm">
+        <div class="card-soft">
           Tu contraseña fue actualizada.
-          <a routerLink="/login" class="mt-3 block font-semibold text-[var(--color-primary-strong)]">
+          <a routerLink="/login" class="btn-link mt-3 block">
             Iniciar sesión
           </a>
         </div>
       } @else {
-        <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4" novalidate>
+        <form [formGroup]="form" (ngSubmit)="submit()" class="card flex flex-col gap-4" novalidate>
           @if (formError()) {
-            <p class="rounded-md bg-[var(--color-alert)] px-3 py-2 text-sm text-[var(--color-on-alert)]">
+            <p class="banner-alert">
               {{ formError() }}
             </p>
-            <a routerLink="/forgot-password" class="text-sm font-semibold text-[var(--color-primary-strong)]">
+            <a routerLink="/forgot-password" class="btn-link">
               Solicitar un nuevo enlace
             </a>
           }
 
-          <label class="flex flex-col gap-1 text-sm">
+          <label class="field-label">
             Nueva contraseña
             <input
               type="password"
               formControlName="newPassword"
-              class="min-h-[44px] rounded-md border border-[var(--color-surface)] bg-white px-3"
+              class="field-input"
             />
             @if (isInvalid('newPassword')) {
               <span class="text-xs text-[var(--color-alert-strong)]">
@@ -55,12 +55,12 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
             }
           </label>
 
-          <label class="flex flex-col gap-1 text-sm">
+          <label class="field-label">
             Confirmar contraseña
             <input
               type="password"
               formControlName="confirmPassword"
-              class="min-h-[44px] rounded-md border border-[var(--color-surface)] bg-white px-3"
+              class="field-input"
             />
             @if (form.errors?.['passwordsMismatch'] && form.get('confirmPassword')?.touched) {
               <span class="text-xs text-[var(--color-alert-strong)]">Las contraseñas no coinciden.</span>
@@ -70,7 +70,7 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
           <button
             type="submit"
             [disabled]="submitting()"
-            class="min-h-[44px] rounded-md bg-[var(--color-primary-strong)] px-4 text-[var(--color-on-primary)] disabled:opacity-60"
+            class="btn btn-primary"
           >
             {{ submitting() ? 'Guardando…' : 'Restablecer contraseña' }}
           </button>

@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
   {
@@ -13,6 +14,22 @@ export const routes: Routes = [
     path: 'lost-pet-reports',
     loadChildren: () =>
       import('./features/lost-pet-reports/lost-pet-report.routes').then((m) => m.LOST_PET_REPORT_ROUTES),
+  },
+  {
+    path: 'sightings',
+    loadChildren: () => import('./features/sightings/sighting.routes').then((m) => m.SIGHTING_ROUTES),
+  },
+  {
+    path: 'contact-requests',
+    canActivate: [authGuard],
+    loadChildren: () =>
+      import('./features/contact-requests/contact-request.routes').then((m) => m.CONTACT_REQUEST_ROUTES),
+  },
+  {
+    path: 'conversations',
+    canActivate: [authGuard],
+    loadChildren: () =>
+      import('./features/conversations/conversation.routes').then((m) => m.CONVERSATION_ROUTES),
   },
   {
     path: '',

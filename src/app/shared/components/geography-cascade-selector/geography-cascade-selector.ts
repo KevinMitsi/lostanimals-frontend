@@ -32,10 +32,10 @@ export interface GeographyLocationValue {
   ],
   template: `
     <div class="flex flex-col gap-3 sm:flex-row sm:gap-4">
-      <label class="flex flex-1 flex-col gap-1 text-sm">
+      <label class="field-label flex-1">
         Departamento
         <select
-          class="min-h-[44px] rounded-md border border-[var(--color-surface)] bg-white px-3"
+          class="field-input"
           [value]="departmentId() ?? ''"
           [disabled]="disabled()"
           (change)="onDepartmentChange($any($event.target).value)"
@@ -47,10 +47,10 @@ export interface GeographyLocationValue {
         </select>
       </label>
 
-      <label class="flex flex-1 flex-col gap-1 text-sm">
+      <label class="field-label flex-1">
         Ciudad
         <select
-          class="min-h-[44px] rounded-md border border-[var(--color-surface)] bg-white px-3 disabled:opacity-60"
+          class="field-select"
           [value]="cityId() ?? ''"
           [disabled]="disabled() || !departmentId()"
           (change)="onCityChange($any($event.target).value)"
@@ -63,10 +63,10 @@ export interface GeographyLocationValue {
       </label>
 
       @if (showNeighborhood()) {
-        <label class="flex flex-1 flex-col gap-1 text-sm">
+        <label class="field-label flex-1">
           Barrio
           <select
-            class="min-h-[44px] rounded-md border border-[var(--color-surface)] bg-white px-3 disabled:opacity-60"
+            class="field-select"
             [value]="neighborhoodId() ?? ''"
             [disabled]="disabled() || !cityId()"
             (change)="onNeighborhoodChange($any($event.target).value)"

@@ -10,14 +10,14 @@ type VerifyState = 'verifying' | 'success' | 'error' | 'missing-token';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink],
   template: `
-    <div class="mx-auto flex min-h-full max-w-md flex-col items-center gap-4 px-4 py-12 text-center">
+    <div class="card mx-4 mt-10 flex max-w-md flex-col items-center gap-4 text-center sm:mx-auto">
       @switch (state()) {
         @case ('verifying') {
           <p>Verificando tu correo…</p>
         }
         @case ('success') {
-          <h1 class="text-xl font-semibold text-[var(--color-primary-strong)]">¡Correo verificado!</h1>
-          <a routerLink="/login" class="font-semibold text-[var(--color-primary-strong)]">Iniciar sesión</a>
+          <h1 class="text-2xl font-bold tracking-tight text-[var(--color-primary-strong)]">¡Correo verificado!</h1>
+          <a routerLink="/login" class="btn-link">Iniciar sesión</a>
         }
         @case ('missing-token') {
           <p class="text-[var(--color-alert-strong)]">
@@ -26,7 +26,7 @@ type VerifyState = 'verifying' | 'success' | 'error' | 'missing-token';
         }
         @case ('error') {
           <p class="text-[var(--color-alert-strong)]">{{ errorMessage() }}</p>
-          <a routerLink="/resend-verification" class="font-semibold text-[var(--color-primary-strong)]">
+          <a routerLink="/resend-verification" class="btn-link">
             Reenviar correo de verificación
           </a>
         }

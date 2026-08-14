@@ -12,29 +12,29 @@ import { AuthService } from '../../auth.service';
   imports: [ReactiveFormsModule, RouterLink, TurnstileWidget],
   template: `
     <div class="mx-auto flex min-h-full max-w-md flex-col gap-6 px-4 py-8">
-      <h1 class="text-2xl font-semibold text-[var(--color-primary-strong)]">Reenviar verificación</h1>
+      <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Reenviar verificación</h1>
 
       @if (sent()) {
-        <div class="rounded-lg bg-[var(--color-surface)] p-4 text-sm">
+        <div class="card-soft">
           Si el correo está registrado, te enviamos un nuevo enlace de verificación.
-          <a routerLink="/login" class="mt-3 block font-semibold text-[var(--color-primary-strong)]">
+          <a routerLink="/login" class="btn-link mt-3 block">
             Volver a iniciar sesión
           </a>
         </div>
       } @else {
-        <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4" novalidate>
+        <form [formGroup]="form" (ngSubmit)="submit()" class="card flex flex-col gap-4" novalidate>
           @if (formError()) {
-            <p class="rounded-md bg-[var(--color-alert)] px-3 py-2 text-sm text-[var(--color-on-alert)]">
+            <p class="banner-alert">
               {{ formError() }}
             </p>
           }
 
-          <label class="flex flex-col gap-1 text-sm">
+          <label class="field-label">
             Correo electrónico
             <input
               type="email"
               formControlName="email"
-              class="min-h-[44px] rounded-md border border-[var(--color-surface)] bg-white px-3"
+              class="field-input"
             />
           </label>
 
@@ -49,7 +49,7 @@ import { AuthService } from '../../auth.service';
           <button
             type="submit"
             [disabled]="submitting()"
-            class="min-h-[44px] rounded-md bg-[var(--color-primary-strong)] px-4 text-[var(--color-on-primary)] disabled:opacity-60"
+            class="btn btn-primary"
           >
             {{ submitting() ? 'Enviando…' : 'Reenviar correo' }}
           </button>
