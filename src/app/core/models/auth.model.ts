@@ -1,0 +1,54 @@
+export type UserRoleDto = 'USER' | 'MODERATOR' | 'ADMIN';
+
+export interface RegisterUserRequest {
+  email: string;
+  password: string;
+  phone: string;
+  documentNumber: string;
+  displayName: string;
+  acceptsDataProcessing: boolean;
+  turnstileToken: string;
+}
+
+export interface RegisteredUserResponse {
+  userId: string;
+  email: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+  turnstileToken: string;
+}
+
+export interface TokenResponse {
+  accessToken: string;
+  refreshToken: string;
+  tokenType: string;
+  expiresInSeconds: number;
+  refreshExpiresInSeconds: number;
+}
+
+export interface OpaqueTokenRequest {
+  token: string;
+}
+
+export interface EmailActionRequest {
+  email: string;
+  turnstileToken: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+}
+
+/** Claims decodificados del JWT (payload), solo para UI/routing — la autorización real la hace el backend. */
+export interface JwtClaims {
+  sub: string;
+  email: string;
+  scope: UserRoleDto;
+  iat: number;
+  exp: number;
+  iss: string;
+}
