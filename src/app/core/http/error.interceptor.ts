@@ -16,6 +16,9 @@ import { parseProblemDetail } from './problem-detail.util';
  * Las peticiones a /auth/** dejan el manejo de errores de negocio (401 credenciales, 403 email
  * no verificado, 409 duplicados, 422 Turnstile) a los propios formularios, que necesitan
  * reaccionar con UI específica en vez de un toast genérico.
+ * Las peticiones que NO van a nuestra API (ej. el PUT presignado a S3 del ImageUploadService)
+ * nunca disparan refresh de sesión ni reciben el header Authorization en el reintento —
+ * un 401/403 ahí es de la firma presignada, no de nuestra sesión.
  */
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const session = inject(SessionStore);
@@ -23,6 +26,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const notifications = inject(NotificationService);
   const router = inject(Router);
 
+  const isApiRequest = req.url.startsWith(environment.apiUrl);
   const isAuthEndpoint = req.url.startsWith(`${environment.apiUrl}/auth/`);
 
   return next(req).pipe(
@@ -33,7 +37,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
       const problem = parseProblemDetail(error);
 
-      const isSessionExpired = error.status === 401 && !isAuthEndpoint;
+      const isSessionExpired = isApiRequest && error.status === 401 && !isAuthEndpoint;
 
       if (isSessionExpired && session.refreshToken()) {
         return tokenRefresh.refresh().pipe(
