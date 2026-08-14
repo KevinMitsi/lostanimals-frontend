@@ -1,11 +1,18 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth/auth.guard';
+import { onboardingGuard } from './core/onboarding/onboarding.guard';
 import { roleGuard } from './core/auth/role.guard';
 
 export const routes: Routes = [
   {
+    path: 'onboarding',
+    loadComponent: () =>
+      import('./features/onboarding/pages/onboarding-page/onboarding-page').then((m) => m.OnboardingPage),
+  },
+  {
     path: '',
     pathMatch: 'full',
+    canActivate: [onboardingGuard],
     loadComponent: () =>
       import('./features/lost-pet-reports/pages/report-list-page/report-list-page').then(
         (m) => m.ReportListPage,
@@ -42,6 +49,11 @@ export const routes: Routes = [
     canActivate: [roleGuard(['MODERATOR', 'ADMIN'])],
     loadComponent: () =>
       import('./features/moderator/pages/moderator-page/moderator-page').then((m) => m.ModeratorPage),
+  },
+  {
+    path: 'admin',
+    canActivate: [roleGuard(['ADMIN'])],
+    loadComponent: () => import('./features/admin/pages/admin-page/admin-page').then((m) => m.AdminPage),
   },
   {
     path: '',
