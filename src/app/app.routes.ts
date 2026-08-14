@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth/auth.guard';
+import { roleGuard } from './core/auth/role.guard';
 
 export const routes: Routes = [
   {
@@ -30,6 +31,17 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadChildren: () =>
       import('./features/conversations/conversation.routes').then((m) => m.CONVERSATION_ROUTES),
+  },
+  {
+    path: 'profile',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/profile/pages/profile-page/profile-page').then((m) => m.ProfilePage),
+  },
+  {
+    path: 'moderator',
+    canActivate: [roleGuard(['MODERATOR', 'ADMIN'])],
+    loadComponent: () =>
+      import('./features/moderator/pages/moderator-page/moderator-page').then((m) => m.ModeratorPage),
   },
   {
     path: '',

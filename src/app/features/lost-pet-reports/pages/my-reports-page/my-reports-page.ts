@@ -1,15 +1,17 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { REPORT_STATUS_LABELS, SPECIES_LABELS } from '../../../../core/labels/labels';
 import { AppApiError } from '../../../../core/http/problem-detail.util';
+import { NotificationService } from '../../../../core/notifications/notification.service';
 import { LostPetReportResponse } from '../../../../core/models';
 import { LostPetReportService } from '../../lost-pet-report.service';
 
 @Component({
   selector: 'app-my-reports-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, RouterLink, ReactiveFormsModule],
   template: `
     <div class="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6">
       <div class="flex items-center justify-between">
@@ -61,6 +63,19 @@ import { LostPetReportService } from '../../lost-pet-report.service';
                 >
                   Cerrar
                 </button>
+
+                @if (!reunionRequested().has(report.id)) {
+                  <button
+                    type="button"
+                    [disabled]="pendingId() === report.id"
+                    (click)="toggleReunionForm(report.id)"
+                    class="btn btn-secondary"
+                  >
+                    ¿La reencontraste?
+                  </button>
+                } @else {
+                  <span class="badge bg-white">Revisión de reencuentro solicitada</span>
+                }
               }
               @if (report.status === 'CLOSED') {
                 <button
@@ -73,6 +88,21 @@ import { LostPetReportService } from '../../lost-pet-report.service';
                 </button>
               }
             </div>
+
+            @if (reunionFormOpenId() === report.id) {
+              <form [formGroup]="reunionForm" (ngSubmit)="submitReunionReview(report)" class="card flex flex-col gap-2">
+                <label class="field-label">
+                  Cuéntale al moderador cómo la reencontraste
+                  <textarea formControlName="note" rows="3" class="field-textarea"></textarea>
+                </label>
+                <div class="flex gap-2">
+                  <button type="submit" [disabled]="reunionForm.invalid || pendingId() === report.id" class="btn btn-primary">
+                    Enviar solicitud
+                  </button>
+                  <button type="button" (click)="reunionFormOpenId.set(null)" class="btn btn-ghost">Cancelar</button>
+                </div>
+              </form>
+            }
           </div>
         }
       </div>
@@ -92,6 +122,8 @@ import { LostPetReportService } from '../../lost-pet-report.service';
 })
 export class MyReportsPage {
   private readonly reportService = inject(LostPetReportService);
+  private readonly notifications = inject(NotificationService);
+  private readonly fb = inject(FormBuilder);
 
   protected readonly statusLabels = REPORT_STATUS_LABELS;
   protected readonly speciesLabels = SPECIES_LABELS;
@@ -100,6 +132,12 @@ export class MyReportsPage {
   protected readonly loading = signal(false);
   protected readonly pendingId = signal<string | null>(null);
   protected readonly formError = signal<string | null>(null);
+
+  protected readonly reunionFormOpenId = signal<string | null>(null);
+  protected readonly reunionRequested = signal<Set<string>>(new Set());
+  protected readonly reunionForm = this.fb.nonNullable.group({
+    note: ['', [Validators.required, Validators.maxLength(500)]],
+  });
 
   constructor() {
     this.fetchPage();
@@ -115,6 +153,32 @@ export class MyReportsPage {
 
   protected reopen(report: LostPetReportResponse): void {
     this.updateStatus(report, 'LOST');
+  }
+
+  protected toggleReunionForm(reportId: string): void {
+    this.reunionForm.reset({ note: '' });
+    this.reunionFormOpenId.set(this.reunionFormOpenId() === reportId ? null : reportId);
+  }
+
+  protected submitReunionReview(report: LostPetReportResponse): void {
+    if (this.reunionForm.invalid) {
+      return;
+    }
+    this.formError.set(null);
+    this.pendingId.set(report.id);
+
+    this.reportService.requestReunionReview(report.id, { note: this.reunionForm.getRawValue().note }).subscribe({
+      next: () => {
+        this.pendingId.set(null);
+        this.reunionFormOpenId.set(null);
+        this.reunionRequested.update((set) => new Set(set).add(report.id));
+        this.notifications.success('Solicitud de revisión enviada. Un moderador la revisará.');
+      },
+      error: (error: AppApiError) => {
+        this.pendingId.set(null);
+        this.formError.set(error.detail);
+      },
+    });
   }
 
   private updateStatus(report: LostPetReportResponse, status: 'LOST' | 'CLOSED'): void {

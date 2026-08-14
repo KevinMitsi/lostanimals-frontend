@@ -1,10 +1,13 @@
 import {
   ContactRequestStatusDto,
+  ConversationReportStatusDto,
   ConversationStatusDto,
   PublicationTypeDto,
   ReportStatusDto,
+  ReunionReviewStatusDto,
   SightingStatusDto,
   SpeciesDto,
+  UserRoleDto,
 } from '../models';
 
 export const SPECIES_LABELS: Record<SpeciesDto, string> = {
@@ -40,4 +43,22 @@ export const CONTACT_REQUEST_STATUS_LABELS: Record<ContactRequestStatusDto, stri
 export const CONVERSATION_STATUS_LABELS: Record<ConversationStatusDto, string> = {
   OPEN: 'Abierta',
   CLOSED: 'Cerrada',
+};
+
+export const USER_ROLE_LABELS: Record<UserRoleDto, string> = {
+  USER: 'Usuario',
+  MODERATOR: 'Moderador',
+  ADMIN: 'Administrador',
+};
+
+export const REUNION_REVIEW_STATUS_LABELS: Record<ReunionReviewStatusDto, string> = {
+  PENDING: 'Pendiente',
+  APPROVED: 'Aprobada',
+  REJECTED: 'Rechazada',
+};
+
+export const CONVERSATION_REPORT_STATUS_LABELS: Record<ConversationReportStatusDto, string> = {
+  PENDING: 'Pendiente',
+  RESOLVED: 'Resuelto',
+  DISMISSED: 'Descartado',
 };
