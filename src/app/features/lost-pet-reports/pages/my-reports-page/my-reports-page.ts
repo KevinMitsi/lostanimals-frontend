@@ -13,14 +13,14 @@ import { LostPetReportService } from '../../lost-pet-report.service';
   template: `
     <div class="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6">
       <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-semibold text-[var(--color-primary-strong)]">Mis reportes</h1>
-        <a routerLink="/lost-pet-reports/new" class="text-sm font-semibold text-[var(--color-primary-strong)]">
+        <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Mis reportes</h1>
+        <a routerLink="/lost-pet-reports/new" class="btn-link">
           + Nuevo reporte
         </a>
       </div>
 
       @if (formError()) {
-        <p class="rounded-md bg-[var(--color-alert)] px-3 py-2 text-sm text-[var(--color-on-alert)]">
+        <p class="banner-alert">
           {{ formError() }}
         </p>
       }
@@ -33,7 +33,7 @@ import { LostPetReportService } from '../../lost-pet-report.service';
 
       <div class="flex flex-col gap-3">
         @for (report of items(); track report.id) {
-          <div class="flex flex-col gap-2 rounded-lg bg-[var(--color-surface)] p-3">
+          <div class="card-soft flex flex-col gap-2">
             <div class="flex items-center justify-between gap-2">
               <span class="font-semibold">{{ report.petName }}</span>
               <span class="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium">
@@ -47,7 +47,7 @@ import { LostPetReportService } from '../../lost-pet-report.service';
             <div class="flex flex-wrap gap-2 text-sm">
               <a
                 [routerLink]="['/lost-pet-reports', report.id, 'edit']"
-                class="min-h-[44px] rounded-md bg-[var(--color-primary-strong)] px-3 py-2 text-[var(--color-on-primary)]"
+                class="btn btn-primary"
               >
                 Editar / imágenes
               </a>
@@ -57,7 +57,7 @@ import { LostPetReportService } from '../../lost-pet-report.service';
                   type="button"
                   [disabled]="pendingId() === report.id"
                   (click)="close(report)"
-                  class="min-h-[44px] rounded-md bg-[var(--color-alert)] px-3 py-2 text-[var(--color-on-alert)] disabled:opacity-60"
+                  class="btn btn-alert"
                 >
                   Cerrar
                 </button>
@@ -67,7 +67,7 @@ import { LostPetReportService } from '../../lost-pet-report.service';
                   type="button"
                   [disabled]="pendingId() === report.id"
                   (click)="reopen(report)"
-                  class="min-h-[44px] rounded-md bg-[var(--color-secondary-strong)] px-3 py-2 text-[var(--color-on-secondary)] disabled:opacity-60"
+                  class="btn btn-secondary"
                 >
                   Reabrir
                 </button>
@@ -82,7 +82,7 @@ import { LostPetReportService } from '../../lost-pet-report.service';
           type="button"
           [disabled]="loading()"
           (click)="loadMore()"
-          class="min-h-[44px] rounded-md bg-[var(--color-surface)] px-4 text-sm text-[var(--color-text)] disabled:opacity-60"
+          class="btn btn-ghost"
         >
           Cargar más
         </button>

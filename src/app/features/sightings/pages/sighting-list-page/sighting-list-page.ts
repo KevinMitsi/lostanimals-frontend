@@ -2,30 +2,31 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { SessionStore } from '../../../../core/auth/session.store';
-import { LostPetReportResponse, ReportSearchRequest, ReportStatusDto, SpeciesDto } from '../../../../core/models';
+import { SightingResponse, SightingSearchRequest, SightingStatusDto, SpeciesDto } from '../../../../core/models';
 import {
   GeographyCascadeSelector,
   GeographyLocationValue,
 } from '../../../../shared/components/geography-cascade-selector/geography-cascade-selector';
-import { ReportCard } from '../../components/report-card/report-card';
-import { LostPetReportService } from '../../lost-pet-report.service';
+import { SightingCard } from '../../components/sighting-card/sighting-card';
+import { SightingService } from '../../sighting.service';
 
 const EMPTY_LOCATION: GeographyLocationValue = { departmentId: null, cityId: null, neighborhoodId: null };
 const DEFAULT_RADIUS_METERS = 5000;
 
 @Component({
-  selector: 'app-report-list-page',
+  selector: 'app-sighting-list-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, ReportCard, GeographyCascadeSelector],
+  imports: [ReactiveFormsModule, RouterLink, SightingCard, GeographyCascadeSelector],
   template: `
     <div class="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-6">
       <div class="flex items-center justify-between gap-2">
-        <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Mascotas perdidas</h1>
-        @if (session.isAuthenticated()) {
-          <a routerLink="/lost-pet-reports/mine" class="btn-link">
-            Mis reportes
-          </a>
-        }
+        <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Avistamientos</h1>
+        <div class="flex items-center gap-3">
+          @if (session.isAuthenticated()) {
+            <a routerLink="/sightings/mine" class="btn-link">Mis avistamientos</a>
+          }
+          <a routerLink="/sightings/new" class="btn btn-primary">+ Reportar</a>
+        </div>
       </div>
 
       <form [formGroup]="filtersForm" (ngSubmit)="applyFilters()" class="card-soft flex flex-col gap-3">
@@ -45,8 +46,7 @@ const DEFAULT_RADIUS_METERS = 5000;
             Estado
             <select formControlName="status" class="field-input">
               <option value="">Todos</option>
-              <option value="LOST">Perdido</option>
-              <option value="REUNITED">Reencontrado</option>
+              <option value="ACTIVE">Activo</option>
               <option value="CLOSED">Cerrado</option>
             </select>
           </label>
@@ -66,13 +66,7 @@ const DEFAULT_RADIUS_METERS = 5000;
         </div>
 
         <div class="flex items-center gap-2">
-          <button
-            type="button"
-            (click)="useMyLocation()"
-            class="btn btn-primary"
-          >
-            📍 Buscar cerca de mí
-          </button>
+          <button type="button" (click)="useMyLocation()" class="btn btn-primary">📍 Buscar cerca de mí</button>
           @if (locationCoords()) {
             <span class="text-xs text-[var(--color-text)]">Radio: {{ DEFAULT_RADIUS_METERS / 1000 }} km</span>
             <button type="button" (click)="clearMyLocation()" class="text-xs text-[var(--color-alert-strong)]">
@@ -81,46 +75,36 @@ const DEFAULT_RADIUS_METERS = 5000;
           }
         </div>
 
-        <button
-          type="submit"
-          class="btn btn-accent"
-        >
-          Buscar
-        </button>
+        <button type="submit" class="btn btn-accent">Buscar</button>
       </form>
 
       @if (loading() && items().length === 0) {
         <p class="text-center text-sm text-[var(--color-text)]">Cargando…</p>
       } @else if (items().length === 0) {
-        <p class="text-center text-sm text-[var(--color-text)]">No se encontraron reportes con esos filtros.</p>
+        <p class="text-center text-sm text-[var(--color-text)]">No se encontraron avistamientos con esos filtros.</p>
       }
 
       <div class="flex flex-col gap-3">
-        @for (report of items(); track report.id) {
-          <app-report-card [report]="report" />
+        @for (sighting of items(); track sighting.id) {
+          <app-sighting-card [sighting]="sighting" />
         }
       </div>
 
       @if (nextCursor()) {
-        <button
-          type="button"
-          [disabled]="loading()"
-          (click)="loadMore()"
-          class="btn btn-ghost"
-        >
+        <button type="button" [disabled]="loading()" (click)="loadMore()" class="btn btn-ghost">
           {{ loading() ? 'Cargando…' : 'Cargar más' }}
         </button>
       }
     </div>
   `,
 })
-export class ReportListPage {
+export class SightingListPage {
   private readonly fb = inject(FormBuilder);
-  private readonly reportService = inject(LostPetReportService);
+  private readonly sightingService = inject(SightingService);
   protected readonly session = inject(SessionStore);
   protected readonly DEFAULT_RADIUS_METERS = DEFAULT_RADIUS_METERS;
 
-  protected readonly items = signal<LostPetReportResponse[]>([]);
+  protected readonly items = signal<SightingResponse[]>([]);
   protected readonly nextCursor = signal<string | null>(null);
   protected readonly loading = signal(false);
   protected readonly locationCoords = signal<{ latitude: number; longitude: number } | null>(null);
@@ -142,10 +126,7 @@ export class ReportListPage {
       return;
     }
     navigator.geolocation.getCurrentPosition((position) => {
-      this.locationCoords.set({
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-      });
+      this.locationCoords.set({ latitude: position.coords.latitude, longitude: position.coords.longitude });
     });
   }
 
@@ -168,9 +149,9 @@ export class ReportListPage {
     const { species, status, location, from, to } = this.filtersForm.getRawValue();
     const coords = this.locationCoords();
 
-    const filters: ReportSearchRequest = {
+    const filters: SightingSearchRequest = {
       species: (species || undefined) as SpeciesDto | undefined,
-      status: (status || undefined) as ReportStatusDto | undefined,
+      status: (status || undefined) as SightingStatusDto | undefined,
       departmentId: location.departmentId ?? undefined,
       cityId: location.cityId ?? undefined,
       neighborhoodId: location.neighborhoodId ?? undefined,
@@ -183,7 +164,7 @@ export class ReportListPage {
       limit: 20,
     };
 
-    this.reportService.search(filters).subscribe({
+    this.sightingService.search(filters).subscribe({
       next: (page) => {
         this.loading.set(false);
         this.items.update((list) => [...list, ...page.items]);

@@ -20,32 +20,35 @@ const STEP_LABELS = ['Datos', 'Ubicación', 'Imágenes', 'Confirmar'] as const;
   imports: [ReactiveFormsModule, GeographyCascadeSelector, ImagePicker, DecimalPipe],
   template: `
     <div class="mx-auto flex max-w-xl flex-col gap-5 px-4 py-6">
-      <h1 class="text-2xl font-semibold text-[var(--color-primary-strong)]">Reportar mascota perdida</h1>
+      <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Reportar mascota perdida</h1>
 
-      <ol class="flex justify-between text-xs text-[var(--color-text)]">
+      <ol class="flex gap-2">
         @for (label of stepLabels; track label; let i = $index) {
-          <li [class.font-semibold]="i === step()" [class.text-[var(--color-primary-strong)]]="i === step()">
-            {{ i + 1 }}. {{ label }}
+          <li
+            class="flex-1 rounded-full py-2 text-center text-xs font-semibold transition-colors"
+            [class]="i <= step() ? 'bg-[var(--color-primary-strong)] text-[var(--color-on-primary)]' : 'bg-white text-[var(--color-text)] opacity-60 shadow-[0_1px_4px_rgba(47,54,59,0.08)]'"
+          >
+            {{ label }}
           </li>
         }
       </ol>
 
       @if (formError()) {
-        <p class="rounded-md bg-[var(--color-alert)] px-3 py-2 text-sm text-[var(--color-on-alert)]">
+        <p class="banner-alert">
           {{ formError() }}
         </p>
       }
 
-      <form [formGroup]="form" class="flex flex-col gap-4">
+      <form [formGroup]="form" class="card flex flex-col gap-4">
         @if (step() === 0) {
-          <label class="flex flex-col gap-1 text-sm">
+          <label class="field-label">
             Nombre de la mascota
-            <input formControlName="petName" class="min-h-[44px] rounded-md border border-[var(--color-surface)] bg-white px-3" />
+            <input formControlName="petName" class="field-input" />
           </label>
 
-          <label class="flex flex-col gap-1 text-sm">
+          <label class="field-label">
             Especie
-            <select formControlName="species" class="min-h-[44px] rounded-md border border-[var(--color-surface)] bg-white px-3">
+            <select formControlName="species" class="field-input">
               <option value="DOG">Perro</option>
               <option value="CAT">Gato</option>
               <option value="BIRD">Ave</option>
@@ -53,21 +56,21 @@ const STEP_LABELS = ['Datos', 'Ubicación', 'Imágenes', 'Confirmar'] as const;
             </select>
           </label>
 
-          <label class="flex flex-col gap-1 text-sm">
+          <label class="field-label">
             Descripción
             <textarea
               formControlName="description"
               rows="4"
-              class="rounded-md border border-[var(--color-surface)] bg-white px-3 py-2"
+              class="field-textarea"
             ></textarea>
           </label>
 
-          <label class="flex flex-col gap-1 text-sm">
+          <label class="field-label">
             Fecha y hora en que desapareció
             <input
               type="datetime-local"
               formControlName="disappearedAt"
-              class="min-h-[44px] rounded-md border border-[var(--color-surface)] bg-white px-3"
+              class="field-input"
             />
           </label>
         }
@@ -78,14 +81,14 @@ const STEP_LABELS = ['Datos', 'Ubicación', 'Imágenes', 'Confirmar'] as const;
           <button
             type="button"
             (click)="useMyLocation()"
-            class="min-h-[44px] rounded-md bg-[var(--color-primary-strong)] px-3 text-sm text-[var(--color-on-primary)]"
+            class="btn btn-primary"
           >
             📍 Usar mi ubicación
           </button>
 
-          @if (form.value.latitude && form.value.longitude) {
+          @if (latitude() !== null && longitude() !== null) {
             <p class="text-xs text-[var(--color-text)]">
-              Ubicación capturada ({{ form.value.latitude | number: '1.4-4' }}, {{ form.value.longitude | number: '1.4-4' }})
+              Ubicación capturada ({{ latitude() | number: '1.4-4' }}, {{ longitude() | number: '1.4-4' }})
             </p>
           }
         }
@@ -95,7 +98,7 @@ const STEP_LABELS = ['Datos', 'Ubicación', 'Imágenes', 'Confirmar'] as const;
         }
 
         @if (step() === 3) {
-          <div class="flex flex-col gap-1 rounded-lg bg-[var(--color-surface)] p-4 text-sm">
+          <div class="card-soft flex flex-col gap-1">
             <p><strong>{{ form.value.petName }}</strong> ({{ form.value.species }})</p>
             <p>{{ form.value.description }}</p>
             <p>{{ form.value.imageKeys?.length ?? 0 }} imagen(es) lista(s).</p>
@@ -108,7 +111,7 @@ const STEP_LABELS = ['Datos', 'Ubicación', 'Imágenes', 'Confirmar'] as const;
           <button
             type="button"
             (click)="previousStep()"
-            class="min-h-[44px] rounded-md bg-[var(--color-surface)] px-4 text-sm text-[var(--color-text)]"
+            class="btn btn-ghost"
           >
             Atrás
           </button>
@@ -118,7 +121,7 @@ const STEP_LABELS = ['Datos', 'Ubicación', 'Imágenes', 'Confirmar'] as const;
             type="button"
             [disabled]="!canAdvance()"
             (click)="nextStep()"
-            class="ml-auto min-h-[44px] rounded-md bg-[var(--color-primary)] px-4 text-[var(--color-on-primary)] disabled:opacity-60"
+            class="btn btn-accent ml-auto"
           >
             Siguiente
           </button>
@@ -127,7 +130,7 @@ const STEP_LABELS = ['Datos', 'Ubicación', 'Imágenes', 'Confirmar'] as const;
             type="button"
             [disabled]="submitting() || !canSubmit()"
             (click)="submit()"
-            class="ml-auto min-h-[44px] rounded-md bg-[var(--color-primary-strong)] px-4 text-[var(--color-on-primary)] disabled:opacity-60"
+            class="btn btn-primary ml-auto"
           >
             {{ submitting() ? 'Publicando…' : 'Publicar reporte' }}
           </button>
@@ -147,14 +150,20 @@ export class ReportCreatePage {
   protected readonly submitting = signal(false);
   protected readonly formError = signal<string | null>(null);
 
+  /**
+   * Signals, no FormControls: el callback de getCurrentPosition corre fuera del ciclo
+   * normal de eventos de plantilla, y con OnPush un patchValue() ahí no siempre repinta
+   * (depende de que zone.js parchee la API). Las signals sí notifican el repintado siempre.
+   */
+  protected readonly latitude = signal<number | null>(null);
+  protected readonly longitude = signal<number | null>(null);
+
   protected readonly form = this.fb.nonNullable.group({
     petName: ['', [Validators.required, Validators.maxLength(80)]],
     species: ['DOG'],
     description: ['', [Validators.required, Validators.maxLength(2000)]],
     disappearedAt: ['', [Validators.required]],
     location: [EMPTY_LOCATION],
-    latitude: this.fb.control<number | null>(null),
-    longitude: this.fb.control<number | null>(null),
     imageKeys: this.fb.nonNullable.control<string[]>([]),
   });
 
@@ -163,10 +172,8 @@ export class ReportCreatePage {
       return;
     }
     navigator.geolocation.getCurrentPosition((position) => {
-      this.form.patchValue({
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-      });
+      this.latitude.set(position.coords.latitude);
+      this.longitude.set(position.coords.longitude);
     });
   }
 
@@ -178,7 +185,7 @@ export class ReportCreatePage {
           !!value.petName && value.petName.length <= 80 && !!value.description && value.description.length <= 2000 && !!value.disappearedAt
         );
       case 1:
-        return !!value.location.neighborhoodId && value.latitude !== null && value.longitude !== null;
+        return !!value.location.neighborhoodId && this.latitude() !== null && this.longitude() !== null;
       case 2:
         return value.imageKeys.length >= 1 && value.imageKeys.length <= 5;
       default:
@@ -203,8 +210,10 @@ export class ReportCreatePage {
   protected submit(): void {
     this.formError.set(null);
     const value = this.form.getRawValue();
+    const latitude = this.latitude();
+    const longitude = this.longitude();
 
-    if (!value.location.neighborhoodId || value.latitude === null || value.longitude === null) {
+    if (!value.location.neighborhoodId || latitude === null || longitude === null) {
       return;
     }
 
@@ -213,8 +222,8 @@ export class ReportCreatePage {
       species: value.species as CreateLostPetReportRequest['species'],
       description: value.description,
       disappearedAt: new Date(value.disappearedAt).toISOString(),
-      latitude: value.latitude,
-      longitude: value.longitude,
+      latitude,
+      longitude,
       neighborhoodId: value.location.neighborhoodId,
       imageKeys: value.imageKeys,
     };

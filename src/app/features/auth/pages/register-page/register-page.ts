@@ -22,31 +22,29 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ReactiveFormsModule, RouterLink, TurnstileWidget],
   template: `
-    <div class="mx-auto flex min-h-full max-w-md flex-col gap-6 px-4 py-8">
-      <h1 class="text-2xl font-semibold text-[var(--color-primary-strong)]">Crear cuenta</h1>
+    <div class="mx-auto flex min-h-full max-w-md flex-col gap-6 px-4 py-10">
+      <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Crear cuenta</h1>
 
       @if (registered()) {
-        <div class="rounded-lg bg-[var(--color-surface)] p-4 text-sm">
+        <div class="card-soft">
           Cuenta creada. Revisa tu correo <strong>{{ form.value.email }}</strong> para verificarla antes de
           iniciar sesión.
-          <a routerLink="/login" class="mt-3 block font-semibold text-[var(--color-primary-strong)]">
-            Ir a iniciar sesión
-          </a>
+          <a routerLink="/login" class="btn-link mt-3 block">Ir a iniciar sesión</a>
         </div>
       } @else {
-        <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4" novalidate>
+        <form [formGroup]="form" (ngSubmit)="submit()" class="card flex flex-col gap-4" novalidate>
           @if (formError()) {
-            <p class="rounded-md bg-[var(--color-alert)] px-3 py-2 text-sm text-[var(--color-on-alert)]">
+            <p class="banner-alert">
               {{ formError() }}
             </p>
           }
 
-          <label class="flex flex-col gap-1 text-sm">
+          <label class="field-label">
             Nombre a mostrar
             <input
               type="text"
               formControlName="displayName"
-              class="min-h-[44px] rounded-md border border-[var(--color-surface)] bg-white px-3"
+              class="field-input"
             />
             @if (isInvalid('displayName')) {
               <span class="text-xs text-[var(--color-alert-strong)]">
@@ -55,25 +53,25 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
             }
           </label>
 
-          <label class="flex flex-col gap-1 text-sm">
+          <label class="field-label">
             Correo electrónico
             <input
               type="email"
               formControlName="email"
-              class="min-h-[44px] rounded-md border border-[var(--color-surface)] bg-white px-3"
+              class="field-input"
             />
             @if (isInvalid('email')) {
               <span class="text-xs text-[var(--color-alert-strong)]">Ingresa un correo válido.</span>
             }
           </label>
 
-          <label class="flex flex-col gap-1 text-sm">
+          <label class="field-label">
             Teléfono (+573XXXXXXXXX)
             <input
               type="tel"
               formControlName="phone"
               placeholder="+573001234567"
-              class="min-h-[44px] rounded-md border border-[var(--color-surface)] bg-white px-3"
+              class="field-input"
             />
             @if (isInvalid('phone')) {
               <span class="text-xs text-[var(--color-alert-strong)]">
@@ -82,24 +80,24 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
             }
           </label>
 
-          <label class="flex flex-col gap-1 text-sm">
+          <label class="field-label">
             Número de cédula
             <input
               type="text"
               formControlName="documentNumber"
-              class="min-h-[44px] rounded-md border border-[var(--color-surface)] bg-white px-3"
+              class="field-input"
             />
             @if (isInvalid('documentNumber')) {
               <span class="text-xs text-[var(--color-alert-strong)]">Debe tener entre 6 y 10 dígitos.</span>
             }
           </label>
 
-          <label class="flex flex-col gap-1 text-sm">
+          <label class="field-label">
             Contraseña
             <input
               type="password"
               formControlName="password"
-              class="min-h-[44px] rounded-md border border-[var(--color-surface)] bg-white px-3"
+              class="field-input"
             />
             @if (isInvalid('password')) {
               <span class="text-xs text-[var(--color-alert-strong)]">
@@ -108,12 +106,12 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
             }
           </label>
 
-          <label class="flex flex-col gap-1 text-sm">
+          <label class="field-label">
             Confirmar contraseña
             <input
               type="password"
               formControlName="confirmPassword"
-              class="min-h-[44px] rounded-md border border-[var(--color-surface)] bg-white px-3"
+              class="field-input"
             />
             @if (form.errors?.['passwordsMismatch'] && form.get('confirmPassword')?.touched) {
               <span class="text-xs text-[var(--color-alert-strong)]">Las contraseñas no coinciden.</span>
@@ -141,14 +139,12 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
           <button
             type="submit"
             [disabled]="submitting()"
-            class="min-h-[44px] rounded-md bg-[var(--color-primary-strong)] px-4 text-[var(--color-on-primary)] disabled:opacity-60"
+            class="btn btn-primary"
           >
             {{ submitting() ? 'Creando cuenta…' : 'Crear cuenta' }}
           </button>
 
-          <a routerLink="/login" class="text-center text-sm text-[var(--color-primary-strong)]">
-            Ya tengo cuenta, iniciar sesión
-          </a>
+          <a routerLink="/login" class="btn-link block text-center">Ya tengo cuenta, iniciar sesión</a>
         </form>
       }
     </div>

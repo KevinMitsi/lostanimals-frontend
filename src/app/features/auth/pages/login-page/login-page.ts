@@ -12,40 +12,40 @@ import { AuthService } from '../../auth.service';
   imports: [ReactiveFormsModule, RouterLink, TurnstileWidget],
   template: `
     <div class="mx-auto flex min-h-full max-w-md flex-col gap-6 px-4 py-8">
-      <h1 class="text-2xl font-semibold text-[var(--color-primary-strong)]">Iniciar sesión</h1>
+      <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Iniciar sesión</h1>
 
       @if (emailNotVerified()) {
-        <div class="rounded-lg bg-[var(--color-surface)] p-4 text-sm">
+        <div class="card-soft">
           Tu cuenta existe pero el correo aún no está verificado.
           <a routerLink="/resend-verification" [queryParams]="{ email: form.value.email }"
-             class="mt-2 block font-semibold text-[var(--color-primary-strong)]">
+             class="btn-link mt-2 block">
             Reenviar correo de verificación
           </a>
         </div>
       }
 
       @if (formError()) {
-        <p class="rounded-md bg-[var(--color-alert)] px-3 py-2 text-sm text-[var(--color-on-alert)]">
+        <p class="banner-alert">
           {{ formError() }}
         </p>
       }
 
-      <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4" novalidate>
-        <label class="flex flex-col gap-1 text-sm">
+      <form [formGroup]="form" (ngSubmit)="submit()" class="card flex flex-col gap-4" novalidate>
+        <label class="field-label">
           Correo electrónico
           <input
             type="email"
             formControlName="email"
-            class="min-h-[44px] rounded-md border border-[var(--color-surface)] bg-white px-3"
+            class="field-input"
           />
         </label>
 
-        <label class="flex flex-col gap-1 text-sm">
+        <label class="field-label">
           Contraseña
           <input
             type="password"
             formControlName="password"
-            class="min-h-[44px] rounded-md border border-[var(--color-surface)] bg-white px-3"
+            class="field-input"
           />
         </label>
 
@@ -60,15 +60,15 @@ import { AuthService } from '../../auth.service';
         <button
           type="submit"
           [disabled]="submitting()"
-          class="min-h-[44px] rounded-md bg-[var(--color-primary-strong)] px-4 text-[var(--color-on-primary)] disabled:opacity-60"
+          class="btn btn-primary"
         >
           {{ submitting() ? 'Ingresando…' : 'Ingresar' }}
         </button>
 
-        <a routerLink="/forgot-password" class="text-center text-sm text-[var(--color-primary-strong)]">
+        <a routerLink="/forgot-password" class="btn-link block text-center">
           Olvidé mi contraseña
         </a>
-        <a routerLink="/register" class="text-center text-sm text-[var(--color-primary-strong)]">
+        <a routerLink="/register" class="btn-link block text-center">
           Crear una cuenta
         </a>
       </form>

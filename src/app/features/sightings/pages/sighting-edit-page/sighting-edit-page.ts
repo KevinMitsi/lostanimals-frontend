@@ -2,40 +2,31 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AppApiError } from '../../../../core/http/problem-detail.util';
-import { EditLostPetReportRequest, LostPetReportResponse } from '../../../../core/models';
+import { EditSightingRequest, SightingResponse } from '../../../../core/models';
 import { ImageUploadService } from '../../../../core/upload/image-upload.service';
 import {
   GeographyCascadeSelector,
   GeographyLocationValue,
 } from '../../../../shared/components/geography-cascade-selector/geography-cascade-selector';
-import { LostPetReportService } from '../../lost-pet-report.service';
+import { SightingService } from '../../sighting.service';
 
 @Component({
-  selector: 'app-report-edit-page',
+  selector: 'app-sighting-edit-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ReactiveFormsModule, GeographyCascadeSelector],
   template: `
-    @if (report(); as report) {
+    @if (sighting(); as sighting) {
       <div class="mx-auto flex max-w-xl flex-col gap-5 px-4 py-6">
-        <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Editar reporte</h1>
+        <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Editar avistamiento</h1>
 
         @if (formError()) {
-          <p class="banner-alert">
-            {{ formError() }}
-          </p>
+          <p class="banner-alert">{{ formError() }}</p>
           @if (conflict()) {
-            <button type="button" (click)="reload(report.id)" class="btn-link">
-              Recargar datos
-            </button>
+            <button type="button" (click)="reload(sighting.id)" class="btn-link">Recargar datos</button>
           }
         }
 
-        <form [formGroup]="form" (ngSubmit)="submit(report.id)" class="card flex flex-col gap-4">
-          <label class="field-label">
-            Nombre de la mascota
-            <input formControlName="petName" class="field-input" />
-          </label>
-
+        <form [formGroup]="form" (ngSubmit)="submit(sighting.id)" class="card flex flex-col gap-4">
           <label class="field-label">
             Especie
             <select formControlName="species" class="field-input">
@@ -48,20 +39,12 @@ import { LostPetReportService } from '../../lost-pet-report.service';
 
           <label class="field-label">
             Descripción
-            <textarea
-              formControlName="description"
-              rows="4"
-              class="field-textarea"
-            ></textarea>
+            <textarea formControlName="description" rows="4" class="field-textarea"></textarea>
           </label>
 
           <label class="field-label">
-            Fecha y hora en que desapareció
-            <input
-              type="datetime-local"
-              formControlName="disappearedAt"
-              class="field-input"
-            />
+            Fecha y hora en que lo viste
+            <input type="datetime-local" formControlName="observedAt" class="field-input" />
           </label>
 
           <div class="flex flex-col gap-1">
@@ -73,11 +56,7 @@ import { LostPetReportService } from '../../lost-pet-report.service';
             <app-geography-cascade-selector formControlName="location" />
           </div>
 
-          <button
-            type="submit"
-            [disabled]="submitting()"
-            class="btn btn-primary"
-          >
+          <button type="submit" [disabled]="submitting()" class="btn btn-primary">
             {{ submitting() ? 'Guardando…' : 'Guardar cambios' }}
           </button>
         </form>
@@ -86,7 +65,7 @@ import { LostPetReportService } from '../../lost-pet-report.service';
           <h2 class="text-xl font-bold tracking-tight text-[var(--color-primary-strong)]">Imágenes</h2>
 
           <div class="flex flex-wrap gap-3">
-            @for (image of report.images; track image.id) {
+            @for (image of sighting.images; track image.id) {
               <div class="relative h-24 w-24 overflow-hidden rounded-2xl shadow-[0_2px_10px_rgba(47,54,59,0.1)]">
                 <img [src]="image.url" alt="" class="h-full w-full object-cover" />
                 @if (image.primary) {
@@ -96,18 +75,14 @@ import { LostPetReportService } from '../../lost-pet-report.service';
                 }
                 <div class="absolute inset-x-0 bottom-0 flex justify-between bg-black/50 p-1">
                   @if (!image.primary) {
-                    <button
-                      type="button"
-                      (click)="setPrimary(report.id, image.id)"
-                      class="text-[10px] text-white underline"
-                    >
+                    <button type="button" (click)="setPrimary(sighting.id, image.id)" class="text-[10px] text-white underline">
                       Hacer principal
                     </button>
                   }
                   <button
                     type="button"
-                    [disabled]="report.images.length <= 1"
-                    (click)="deleteImage(report.id, image.id)"
+                    [disabled]="sighting.images.length <= 1"
+                    (click)="deleteImage(sighting.id, image.id)"
                     class="ml-auto text-[10px] text-white underline disabled:opacity-40"
                   >
                     Eliminar
@@ -116,7 +91,7 @@ import { LostPetReportService } from '../../lost-pet-report.service';
               </div>
             }
 
-            @if (report.images.length < 5) {
+            @if (sighting.images.length < 5) {
               <label
                 class="flex h-24 w-24 min-h-[44px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--color-surface)] text-xs transition hover:border-[var(--color-primary)]"
               >
@@ -126,7 +101,7 @@ import { LostPetReportService } from '../../lost-pet-report.service';
                   accept="image/jpeg,image/png"
                   capture="environment"
                   class="hidden"
-                  (change)="addImage(report.id, $any($event.target).files)"
+                  (change)="addImage(sighting.id, $any($event.target).files)"
                 />
               </label>
             }
@@ -142,24 +117,23 @@ import { LostPetReportService } from '../../lost-pet-report.service';
     }
   `,
 })
-export class ReportEditPage {
+export class SightingEditPage {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly reportService = inject(LostPetReportService);
+  private readonly sightingService = inject(SightingService);
   private readonly uploadService = inject(ImageUploadService);
 
-  protected readonly report = signal<LostPetReportResponse | undefined>(undefined);
+  protected readonly sighting = signal<SightingResponse | undefined>(undefined);
   protected readonly submitting = signal(false);
   protected readonly formError = signal<string | null>(null);
   protected readonly conflict = signal(false);
   protected readonly imageError = signal<string | null>(null);
 
   protected readonly form = this.fb.nonNullable.group({
-    petName: ['', [Validators.required, Validators.maxLength(80)]],
     species: ['DOG'],
     description: ['', [Validators.required, Validators.maxLength(2000)]],
-    disappearedAt: ['', [Validators.required]],
+    observedAt: ['', [Validators.required]],
     location: this.fb.nonNullable.control<GeographyLocationValue>({
       departmentId: null,
       cityId: null,
@@ -171,26 +145,25 @@ export class ReportEditPage {
     this.reload(this.route.snapshot.paramMap.get('id')!);
   }
 
-  protected reload(reportId: string): void {
+  protected reload(sightingId: string): void {
     this.formError.set(null);
     this.conflict.set(false);
 
-    this.reportService.getById(reportId).subscribe({
-      next: (report) => {
-        this.report.set(report);
+    this.sightingService.getById(sightingId).subscribe({
+      next: (sighting) => {
+        this.sighting.set(sighting);
         this.form.patchValue({
-          petName: report.petName,
-          species: report.species,
-          description: report.description,
-          disappearedAt: report.disappearedAt.slice(0, 16),
-          location: { departmentId: null, cityId: null, neighborhoodId: report.neighborhoodId },
+          species: sighting.species,
+          description: sighting.description,
+          observedAt: sighting.observedAt.slice(0, 16),
+          location: { departmentId: null, cityId: null, neighborhoodId: sighting.neighborhoodId },
         });
       },
-      error: () => this.formError.set('No se pudo cargar el reporte.'),
+      error: () => this.formError.set('No se pudo cargar el avistamiento.'),
     });
   }
 
-  protected submit(reportId: string): void {
+  protected submit(sightingId: string): void {
     this.formError.set(null);
     this.conflict.set(false);
 
@@ -205,27 +178,26 @@ export class ReportEditPage {
       return;
     }
 
-    const request: EditLostPetReportRequest = {
-      petName: value.petName,
-      species: value.species as EditLostPetReportRequest['species'],
+    const request: EditSightingRequest = {
+      species: value.species as EditSightingRequest['species'],
       description: value.description,
-      disappearedAt: new Date(value.disappearedAt).toISOString(),
-      latitude: this.report()!.latitude,
-      longitude: this.report()!.longitude,
+      observedAt: new Date(value.observedAt).toISOString(),
+      latitude: this.sighting()!.latitude,
+      longitude: this.sighting()!.longitude,
       neighborhoodId: value.location.neighborhoodId,
     };
 
     this.submitting.set(true);
-    this.reportService.edit(reportId, request).subscribe({
+    this.sightingService.edit(sightingId, request).subscribe({
       next: () => {
         this.submitting.set(false);
-        this.router.navigate(['/lost-pet-reports', reportId]);
+        this.router.navigate(['/sightings', sightingId]);
       },
       error: (error: AppApiError) => {
         this.submitting.set(false);
         if (error.status === 409) {
           this.conflict.set(true);
-          this.formError.set('Este reporte cambió mientras lo editabas. Recarga antes de reintentar.');
+          this.formError.set('Este avistamiento cambió mientras lo editabas. Recarga antes de reintentar.');
         } else {
           this.formError.set(error.detail);
         }
@@ -233,17 +205,17 @@ export class ReportEditPage {
     });
   }
 
-  protected addImage(reportId: string, fileList: FileList | null): void {
+  protected addImage(sightingId: string, fileList: FileList | null): void {
     const file = fileList?.[0];
     if (!file) {
       return;
     }
     this.imageError.set(null);
 
-    this.uploadService.uploadImage(this.reportService.basePath, file).subscribe({
+    this.uploadService.uploadImage(this.sightingService.basePath, file).subscribe({
       next: (uploaded) => {
-        this.reportService.attachImage(reportId, { objectKey: uploaded.objectKey }).subscribe({
-          next: () => this.reload(reportId),
+        this.sightingService.attachImage(sightingId, { objectKey: uploaded.objectKey }).subscribe({
+          next: () => this.reload(sightingId),
           error: (error: AppApiError) => this.imageError.set(error.detail),
         });
       },
@@ -253,18 +225,18 @@ export class ReportEditPage {
     });
   }
 
-  protected deleteImage(reportId: string, imageId: string): void {
+  protected deleteImage(sightingId: string, imageId: string): void {
     this.imageError.set(null);
-    this.reportService.deleteImage(reportId, imageId).subscribe({
-      next: () => this.reload(reportId),
+    this.sightingService.deleteImage(sightingId, imageId).subscribe({
+      next: () => this.reload(sightingId),
       error: (error: AppApiError) => this.imageError.set(error.detail),
     });
   }
 
-  protected setPrimary(reportId: string, imageId: string): void {
+  protected setPrimary(sightingId: string, imageId: string): void {
     this.imageError.set(null);
-    this.reportService.setPrimaryImage(reportId, imageId).subscribe({
-      next: () => this.reload(reportId),
+    this.sightingService.setPrimaryImage(sightingId, imageId).subscribe({
+      next: () => this.reload(sightingId),
       error: (error: AppApiError) => this.imageError.set(error.detail),
     });
   }

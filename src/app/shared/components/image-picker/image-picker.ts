@@ -29,7 +29,7 @@ interface PickerItem {
     <div class="flex flex-col gap-3">
       <div class="flex flex-wrap gap-3">
         @for (item of items(); track item.id) {
-          <div class="relative h-24 w-24 overflow-hidden rounded-md border border-[var(--color-surface)]">
+          <div class="relative h-24 w-24 overflow-hidden rounded-2xl shadow-[0_2px_10px_rgba(47,54,59,0.1)]">
             <img [src]="item.previewUrl" alt="" class="h-full w-full object-cover" />
             @if (item.status === 'uploading') {
               <div class="absolute inset-0 flex items-center justify-center bg-black/40 text-xs text-white">
@@ -54,7 +54,7 @@ interface PickerItem {
 
         @if (items().length < max()) {
           <label
-            class="flex h-24 w-24 min-h-[44px] cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed border-[var(--color-surface)] text-xs text-[var(--color-text)]"
+            class="flex h-24 w-24 min-h-[44px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--color-surface)] text-xs text-[var(--color-text)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary-strong)]"
           >
             + Foto
             <input
