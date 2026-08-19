@@ -9,6 +9,7 @@ import {
 } from '../../../../shared/components/geography-cascade-selector/geography-cascade-selector';
 import { ReportCard } from '../../components/report-card/report-card';
 import { LostPetReportService } from '../../lost-pet-report.service';
+import { NearbySightingsMap } from '../../../sightings/components/nearby-sightings-map/nearby-sightings-map';
 
 const EMPTY_LOCATION: GeographyLocationValue = { departmentId: null, cityId: null, neighborhoodId: null };
 const DEFAULT_RADIUS_METERS = 5000;
@@ -16,7 +17,7 @@ const DEFAULT_RADIUS_METERS = 5000;
 @Component({
   selector: 'app-report-list-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, ReportCard, GeographyCascadeSelector],
+  imports: [ReactiveFormsModule, RouterLink, ReportCard, GeographyCascadeSelector, NearbySightingsMap],
   template: `
     <div class="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-6">
       <div class="flex items-center justify-between gap-2">
@@ -28,6 +29,46 @@ const DEFAULT_RADIUS_METERS = 5000;
         }
       </div>
 
+      <app-nearby-sightings-map />
+
+      <form [formGroup]="filtersForm" (ngSubmit)="applyFilters()" class="card-soft flex flex-col gap-3">
+        <div class="flex flex-col gap-3 sm:flex-row">
+          <label class="field-label flex-1">
+            Especie
+            <select formControlName="species" class="field-input">
+              <option value="">Todas</option>
+              <option value="DOG">Perro</option>
+              <option value="CAT">Gato</option>
+              <option value="BIRD">Ave</option>
+              <option value="OTHER">Otro</option>
+            </select>
+          </label>
+
+          <label class="field-label flex-1">
+            Estado
+            <select formControlName="status" class="field-input">
+              <option value="">Todos</option>
+              <option value="LOST">Perdido</option>
+              <option value="REUNITED">Reencontrado</option>
+              <option value="CLOSED">Cerrado</option>
+            </select>
+          </label>
+        </div>
+
+        <app-geography-cascade-selector formControlName="location" />
+
+        <div class="flex flex-col gap-3 sm:flex-row">
+          <label class="field-label flex-1">
+            Desde
+            <input type="date" formControlName="from" class="field-input" />
+          </label>
+          <label class="field-label flex-1">
+            Hasta
+            <input type="date" formControlName="to" class="field-input" />
+          </label>
+        </div>
+
+        <div class="flex items-center gap-2">
       <button
         type="button"
         (click)="filtersOpen.set(!filtersOpen())"
