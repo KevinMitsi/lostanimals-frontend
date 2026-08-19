@@ -28,66 +28,81 @@ const DEFAULT_RADIUS_METERS = 5000;
         }
       </div>
 
-      <form [formGroup]="filtersForm" (ngSubmit)="applyFilters()" class="card-soft flex flex-col gap-3">
-        <div class="flex flex-col gap-3 sm:flex-row">
-          <label class="field-label flex-1">
-            Especie
-            <select formControlName="species" class="field-input">
-              <option value="">Todas</option>
-              <option value="DOG">Perro</option>
-              <option value="CAT">Gato</option>
-              <option value="BIRD">Ave</option>
-              <option value="OTHER">Otro</option>
-            </select>
-          </label>
+      <button
+        type="button"
+        (click)="filtersOpen.set(!filtersOpen())"
+        class="btn btn-ghost self-start"
+      >
+        🔍 {{ filtersOpen() ? 'Ocultar filtros' : 'Filtrar' }}
+        @if (!filtersOpen() && activeFilterCount() > 0) {
+          <span class="badge bg-[var(--color-primary-strong)] text-[var(--color-on-primary)]">
+            {{ activeFilterCount() }}
+          </span>
+        }
+      </button>
 
-          <label class="field-label flex-1">
-            Estado
-            <select formControlName="status" class="field-input">
-              <option value="">Todos</option>
-              <option value="LOST">Perdido</option>
-              <option value="REUNITED">Reencontrado</option>
-              <option value="CLOSED">Cerrado</option>
-            </select>
-          </label>
-        </div>
+      @if (filtersOpen()) {
+        <form [formGroup]="filtersForm" (ngSubmit)="applyFilters()" class="card-soft flex flex-col gap-3">
+          <div class="flex flex-col gap-3 sm:flex-row">
+            <label class="field-label flex-1">
+              Especie
+              <select formControlName="species" class="field-input">
+                <option value="">Todas</option>
+                <option value="DOG">Perro</option>
+                <option value="CAT">Gato</option>
+                <option value="BIRD">Ave</option>
+                <option value="OTHER">Otro</option>
+              </select>
+            </label>
 
-        <app-geography-cascade-selector formControlName="location" />
+            <label class="field-label flex-1">
+              Estado
+              <select formControlName="status" class="field-input">
+                <option value="">Todos</option>
+                <option value="LOST">Perdido</option>
+                <option value="REUNITED">Reencontrado</option>
+                <option value="CLOSED">Cerrado</option>
+              </select>
+            </label>
+          </div>
 
-        <div class="flex flex-col gap-3 sm:flex-row">
-          <label class="field-label flex-1">
-            Desde
-            <input type="date" formControlName="from" class="field-input" />
-          </label>
-          <label class="field-label flex-1">
-            Hasta
-            <input type="date" formControlName="to" class="field-input" />
-          </label>
-        </div>
+          <app-geography-cascade-selector formControlName="location" />
 
-        <div class="flex items-center gap-2">
-          <button
-            type="button"
-            (click)="useMyLocation()"
-            class="btn btn-primary"
-          >
-            📍 Buscar cerca de mí
-          </button>
-          @if (locationCoords()) {
-            <span class="text-xs text-[var(--color-text)]">Radio: {{ DEFAULT_RADIUS_METERS / 1000 }} km</span>
-            <button type="button" (click)="clearMyLocation()" class="text-xs text-[var(--color-alert-strong)]">
-              Quitar
+          <div class="flex flex-col gap-3 sm:flex-row">
+            <label class="field-label flex-1">
+              Desde
+              <input type="date" formControlName="from" class="field-input" />
+            </label>
+            <label class="field-label flex-1">
+              Hasta
+              <input type="date" formControlName="to" class="field-input" />
+            </label>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              (click)="useMyLocation()"
+              class="btn btn-primary"
+            >
+              📍 Buscar cerca de mí
             </button>
-          }
-        </div>
+            @if (locationCoords()) {
+              <span class="text-xs text-[var(--color-text)]">Radio: {{ DEFAULT_RADIUS_METERS / 1000 }} km</span>
+              <button type="button" (click)="clearMyLocation()" class="text-xs text-[var(--color-alert-strong)]">
+                Quitar
+              </button>
+            }
+          </div>
 
-        <button
-          type="submit"
-          class="btn btn-accent"
-        >
-          Buscar
-        </button>
-      </form>
+          <button
+            type="submit"
+            class="btn btn-accent"
+          >
+            Buscar
+          </button>
+        </form>
+      }
 
       @if (loading() && items().length === 0) {
         <p class="text-center text-sm text-[var(--color-text)]">Cargando…</p>
@@ -124,6 +139,7 @@ export class ReportListPage {
   protected readonly nextCursor = signal<string | null>(null);
   protected readonly loading = signal(false);
   protected readonly locationCoords = signal<{ latitude: number; longitude: number } | null>(null);
+  protected readonly filtersOpen = signal(false);
 
   protected readonly filtersForm = this.fb.nonNullable.group({
     species: [''],
@@ -156,7 +172,13 @@ export class ReportListPage {
   protected applyFilters(): void {
     this.items.set([]);
     this.nextCursor.set(null);
+    this.filtersOpen.set(false);
     this.fetchPage();
+  }
+
+  protected activeFilterCount(): number {
+    const { species, status, location, from, to } = this.filtersForm.getRawValue();
+    return [species, status, location.neighborhoodId, from, to, this.locationCoords()].filter(Boolean).length;
   }
 
   protected loadMore(): void {

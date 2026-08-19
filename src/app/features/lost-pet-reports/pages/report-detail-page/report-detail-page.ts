@@ -5,12 +5,13 @@ import { SessionStore } from '../../../../core/auth/session.store';
 import { REPORT_STATUS_LABELS, SPECIES_LABELS } from '../../../../core/labels/labels';
 import { LostPetReportResponse } from '../../../../core/models';
 import { ContactRequestButton } from '../../../../shared/components/contact-request-button/contact-request-button';
+import { NeighborhoodLabel } from '../../../../shared/components/neighborhood-label/neighborhood-label';
 import { LostPetReportService } from '../../lost-pet-report.service';
 
 @Component({
   selector: 'app-report-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, ContactRequestButton],
+  imports: [DatePipe, RouterLink, ContactRequestButton, NeighborhoodLabel],
   template: `
     @if (report(); as report) {
       <div class="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6">
@@ -33,6 +34,9 @@ import { LostPetReportService } from '../../lost-pet-report.service';
         <p class="text-sm text-[var(--color-text)]">{{ report.description }}</p>
         <p class="text-xs text-[var(--color-text)] opacity-70">
           Desapareció el {{ report.disappearedAt | date: 'medium' }}
+        </p>
+        <p class="text-xs text-[var(--color-text)] opacity-70">
+          <app-neighborhood-label [neighborhoodId]="report.neighborhoodId" />
         </p>
 
         @if (session.isAuthenticated()) {
