@@ -7,6 +7,7 @@ const STORAGE_KEY = 'lostanimals.session';
 interface StoredSession {
   accessToken: string;
   refreshToken: string;
+  profileComplete: boolean;
 }
 
 /**
@@ -20,6 +21,7 @@ export class SessionStore {
 
   readonly accessToken = computed(() => this.session()?.accessToken ?? null);
   readonly refreshToken = computed(() => this.session()?.refreshToken ?? null);
+  readonly profileComplete = computed(() => this.session()?.profileComplete ?? true);
 
   readonly claims = computed<JwtClaims | null>(() => {
     const token = this.accessToken();
@@ -42,11 +44,20 @@ export class SessionStore {
 
   readonly isAdmin = computed(() => this.role() === 'ADMIN');
 
-  setSession(tokens: Pick<TokenResponse, 'accessToken' | 'refreshToken'>): void {
+  setSession(tokens: Pick<TokenResponse, 'accessToken' | 'refreshToken'>, profileComplete = true): void {
     const next: StoredSession = {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
+      profileComplete,
     };
+    this.session.set(next);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  }
+
+  markProfileComplete(): void {
+    const current = this.session();
+    if (!current) return;
+    const next = { ...current, profileComplete: true };
     this.session.set(next);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   }
@@ -62,7 +73,13 @@ export class SessionStore {
       return null;
     }
     try {
-      return JSON.parse(raw) as StoredSession;
+      const stored = JSON.parse(raw) as Partial<StoredSession>;
+      if (!stored.accessToken || !stored.refreshToken) return null;
+      return {
+        accessToken: stored.accessToken,
+        refreshToken: stored.refreshToken,
+        profileComplete: stored.profileComplete ?? true,
+      };
     } catch {
       return null;
     }

@@ -4,12 +4,13 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { environment } from '../../../../../environments/environment';
 import { AppApiError } from '../../../../core/http/problem-detail.util';
 import { TurnstileWidget } from '../../../../shared/components/turnstile-widget/turnstile-widget';
+import { GoogleAuthButton } from '../../../../shared/components/google-auth-button/google-auth-button';
 import { AuthService } from '../../auth.service';
 
 @Component({
   selector: 'app-login-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, TurnstileWidget],
+  imports: [ReactiveFormsModule, RouterLink, TurnstileWidget, GoogleAuthButton],
   template: `
     <div class="mx-auto flex min-h-full max-w-md flex-col gap-6 px-4 py-8">
       <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Iniciar sesión</h1>
@@ -29,6 +30,21 @@ import { AuthService } from '../../auth.service';
           {{ formError() }}
         </p>
       }
+
+      <div class="card flex flex-col gap-3">
+        <app-google-auth-button
+          [disabled]="submitting()"
+          (credentialReceived)="authenticateWithGoogle($event)"
+        />
+        <p class="text-center text-xs text-[var(--color-text)] opacity-70">
+          Si todavía no tienes cuenta, créala primero para aceptar el tratamiento de datos.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3 text-xs uppercase tracking-wide opacity-60">
+        <span class="h-px flex-1 bg-[var(--color-surface)]"></span><span>o con correo</span>
+        <span class="h-px flex-1 bg-[var(--color-surface)]"></span>
+      </div>
 
       <form [formGroup]="form" (ngSubmit)="submit()" class="card flex flex-col gap-4" novalidate>
         <label class="field-label">
@@ -122,6 +138,26 @@ export class LoginPage {
       error: (error: AppApiError) => {
         this.submitting.set(false);
         this.handleError(error);
+      },
+    });
+  }
+
+  protected authenticateWithGoogle(credential: string): void {
+    this.formError.set(null);
+    this.submitting.set(true);
+    this.authService.authenticateWithGoogle({ credential, acceptsDataProcessing: false }).subscribe({
+      next: (response) => {
+        this.submitting.set(false);
+        const destination = response.profileComplete
+          ? (this.route.snapshot.queryParamMap.get('returnUrl') ?? '/')
+          : '/complete-profile';
+        this.router.navigateByUrl(destination);
+      },
+      error: (error: AppApiError) => {
+        this.submitting.set(false);
+        this.formError.set(error.status === 422
+          ? 'Para crear una cuenta con Google, ve a Crear una cuenta y acepta el tratamiento de datos.'
+          : error.detail);
       },
     });
   }
