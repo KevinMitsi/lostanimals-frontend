@@ -10,6 +10,10 @@ import {
   RegisteredUserResponse,
   ResetPasswordRequest,
   TokenResponse,
+  GoogleAuthenticationRequest,
+  GoogleAuthenticationResponse,
+  CompleteGoogleProfileRequest,
+  UserProfileResponse,
 } from '../../core/models';
 import { SessionStore } from '../../core/auth/session.store';
 
@@ -28,6 +32,18 @@ export class AuthService {
     return this.http
       .post<TokenResponse>(`${this.base}/login`, request)
       .pipe(tap((tokens) => this.session.setSession(tokens)));
+  }
+
+  authenticateWithGoogle(request: GoogleAuthenticationRequest): Observable<GoogleAuthenticationResponse> {
+    return this.http.post<GoogleAuthenticationResponse>(`${this.base}/google`, request).pipe(
+      tap((response) => this.session.setSession(response, response.profileComplete)),
+    );
+  }
+
+  completeGoogleProfile(request: CompleteGoogleProfileRequest): Observable<UserProfileResponse> {
+    return this.http.put<UserProfileResponse>(`${environment.apiUrl}/users/me/profile`, request).pipe(
+      tap(() => this.session.markProfileComplete()),
+    );
   }
 
   verifyEmail(token: string): Observable<void> {

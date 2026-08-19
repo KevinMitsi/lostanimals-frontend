@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal, viewChild } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { environment } from '../../../../../environments/environment';
 import { AppApiError, splitFieldError } from '../../../../core/http/problem-detail.util';
 import {
@@ -9,6 +9,7 @@ import {
   passwordComplexityValidator,
 } from '../../../../core/validators/validators';
 import { TurnstileWidget } from '../../../../shared/components/turnstile-widget/turnstile-widget';
+import { GoogleAuthButton } from '../../../../shared/components/google-auth-button/google-auth-button';
 import { AuthService } from '../../auth.service';
 
 function passwordsMatchValidator(control: AbstractControl): ValidationErrors | null {
@@ -20,7 +21,7 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
 @Component({
   selector: 'app-register-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, TurnstileWidget],
+  imports: [ReactiveFormsModule, RouterLink, TurnstileWidget, GoogleAuthButton],
   template: `
     <div class="mx-auto flex min-h-full max-w-md flex-col gap-6 px-4 py-10">
       <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Crear cuenta</h1>
@@ -38,6 +39,28 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
               {{ formError() }}
             </p>
           }
+
+          <label class="flex min-h-[44px] items-center gap-2 text-sm">
+            <input type="checkbox" formControlName="acceptsDataProcessing" class="h-5 w-5" />
+            Acepto el tratamiento de mis datos personales.
+          </label>
+          @if (isInvalid('acceptsDataProcessing')) {
+            <span class="-mt-2 text-xs text-[var(--color-alert-strong)]">
+              Debes aceptar el tratamiento de datos para continuar.
+            </span>
+          }
+
+          <app-google-auth-button
+            [disabled]="submitting() || !form.controls.acceptsDataProcessing.value"
+            (credentialReceived)="authenticateWithGoogle($event)"
+          />
+          <p class="-mt-2 text-center text-xs text-[var(--color-text)] opacity-70">
+            Puedes continuar con Google o completar todos los datos manualmente.
+          </p>
+          <div class="flex items-center gap-3 text-xs uppercase tracking-wide opacity-60">
+            <span class="h-px flex-1 bg-[var(--color-surface)]"></span><span>o completa los datos</span>
+            <span class="h-px flex-1 bg-[var(--color-surface)]"></span>
+          </div>
 
           <label class="field-label">
             Nombre a mostrar
@@ -118,16 +141,6 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
             }
           </label>
 
-          <label class="flex min-h-[44px] items-center gap-2 text-sm">
-            <input type="checkbox" formControlName="acceptsDataProcessing" class="h-5 w-5" />
-            Acepto el tratamiento de mis datos personales.
-          </label>
-          @if (isInvalid('acceptsDataProcessing')) {
-            <span class="-mt-2 text-xs text-[var(--color-alert-strong)]">
-              Debes aceptar el tratamiento de datos para continuar.
-            </span>
-          }
-
           <app-turnstile-widget
             #turnstile
             [siteKey]="siteKey"
@@ -153,6 +166,7 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
 export class RegisterPage {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
   protected readonly siteKey = environment.turnstileSiteKey;
 
   private readonly turnstileWidget = viewChild<TurnstileWidget>('turnstile');
@@ -207,6 +221,25 @@ export class RegisterPage {
       error: (error: AppApiError) => {
         this.submitting.set(false);
         this.handleError(error);
+      },
+    });
+  }
+
+  protected authenticateWithGoogle(credential: string): void {
+    this.formError.set(null);
+    if (!this.form.controls.acceptsDataProcessing.value) {
+      this.form.controls.acceptsDataProcessing.markAsTouched();
+      return;
+    }
+    this.submitting.set(true);
+    this.authService.authenticateWithGoogle({ credential, acceptsDataProcessing: true }).subscribe({
+      next: (response) => {
+        this.submitting.set(false);
+        this.router.navigateByUrl(response.profileComplete ? '/' : '/complete-profile');
+      },
+      error: (error: AppApiError) => {
+        this.submitting.set(false);
+        this.formError.set(error.detail);
       },
     });
   }
