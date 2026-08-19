@@ -16,9 +16,9 @@ export interface GeographyLocationValue {
  * Con `[showNeighborhood]="false"` queda en departamento → ciudad, para el panel de admin
  * (áreas de servicio, que opera a nivel de ciudad).
  *
- * Nota: al no existir en el backend un endpoint para resolver el departamento/ciudad
- * a partir de un neighborhoodId, si se hace `writeValue` con solo `neighborhoodId` los
- * selects de departamento/ciudad no se pueden preseleccionar automáticamente.
+ * Si `writeValue` recibe solo `neighborhoodId` (ej. al editar un reporte/avistamiento ya
+ * guardado), resuelve el departamento/ciudad correspondientes vía
+ * `GET /geography/neighborhoods/{id}` para preseleccionar los tres selects.
  */
 @Component({
   selector: 'app-geography-cascade-selector',
@@ -36,13 +36,14 @@ export interface GeographyLocationValue {
         Departamento
         <select
           class="field-input"
-          [value]="departmentId() ?? ''"
           [disabled]="disabled()"
           (change)="onDepartmentChange($any($event.target).value)"
         >
-          <option value="">Selecciona…</option>
+          <option value="" [selected]="!departmentId()">Selecciona…</option>
           @for (department of departments(); track department.id) {
-            <option [value]="department.id">{{ department.name }}</option>
+            <option [value]="department.id" [selected]="department.id === departmentId()">
+              {{ department.name }}
+            </option>
           }
         </select>
       </label>
@@ -51,13 +52,12 @@ export interface GeographyLocationValue {
         Ciudad
         <select
           class="field-select"
-          [value]="cityId() ?? ''"
           [disabled]="disabled() || !departmentId()"
           (change)="onCityChange($any($event.target).value)"
         >
-          <option value="">Selecciona…</option>
+          <option value="" [selected]="!cityId()">Selecciona…</option>
           @for (city of cities(); track city.id) {
-            <option [value]="city.id">{{ city.name }}</option>
+            <option [value]="city.id" [selected]="city.id === cityId()">{{ city.name }}</option>
           }
         </select>
       </label>
@@ -67,13 +67,14 @@ export interface GeographyLocationValue {
           Barrio
           <select
             class="field-select"
-            [value]="neighborhoodId() ?? ''"
             [disabled]="disabled() || !cityId()"
             (change)="onNeighborhoodChange($any($event.target).value)"
           >
-            <option value="">Selecciona…</option>
+            <option value="" [selected]="!neighborhoodId()">Selecciona…</option>
             @for (neighborhood of neighborhoods(); track neighborhood.id) {
-              <option [value]="neighborhood.id">{{ neighborhood.name }}</option>
+              <option [value]="neighborhood.id" [selected]="neighborhood.id === neighborhoodId()">
+                {{ neighborhood.name }}
+              </option>
             }
           </select>
         </label>
@@ -107,6 +108,18 @@ export class GeographyCascadeSelector implements ControlValueAccessor {
   private onTouched: () => void = () => {};
 
   writeValue(value: GeographyLocationValue | null): void {
+    if (value?.neighborhoodId && !value.departmentId && !value.cityId) {
+      this.departmentId.set(null);
+      this.cityId.set(null);
+      this.neighborhoodId.set(null);
+      this.catalog.getNeighborhoodDetail(value.neighborhoodId).subscribe((detail) => {
+        this.departmentId.set(detail.departmentId);
+        this.cityId.set(detail.cityId);
+        this.neighborhoodId.set(detail.neighborhoodId);
+      });
+      return;
+    }
+
     this.departmentId.set(value?.departmentId ?? null);
     this.cityId.set(value?.cityId ?? null);
     this.neighborhoodId.set(value?.neighborhoodId ?? null);

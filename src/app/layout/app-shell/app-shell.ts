@@ -37,7 +37,7 @@ interface NavItem {
       </nav>
     </header>
 
-    <main class="flex-1 pb-[calc(6.5rem+var(--safe-area-bottom))] md:pb-8">
+    <main class="flex-1 pb-[calc(5.85rem+var(--safe-area-bottom))] md:pb-8">
       <router-outlet />
     </main>
 
@@ -50,7 +50,7 @@ interface NavItem {
           class="floating-nav-link"
           [attr.aria-label]="item.label"
         >
-          <app-nav-icon [name]="item.icon" class="h-8 w-8" />
+          <app-nav-icon [name]="item.icon" class="h-[1.8rem] w-[1.8rem]" />
         </a>
       }
     </nav>

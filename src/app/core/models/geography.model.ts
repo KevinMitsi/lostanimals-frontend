@@ -14,3 +14,12 @@ export interface NeighborhoodResponse {
   cityId: string;
   name: string;
 }
+
+export interface NeighborhoodDetailResponse {
+  departmentId: string;
+  departmentName: string;
+  cityId: string;
+  cityName: string;
+  neighborhoodId: string;
+  neighborhoodName: string;
+}
