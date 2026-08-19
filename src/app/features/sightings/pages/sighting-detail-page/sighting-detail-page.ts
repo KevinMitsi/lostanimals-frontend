@@ -5,12 +5,13 @@ import { SessionStore } from '../../../../core/auth/session.store';
 import { SIGHTING_STATUS_LABELS, SPECIES_LABELS } from '../../../../core/labels/labels';
 import { SightingResponse } from '../../../../core/models';
 import { ContactRequestButton } from '../../../../shared/components/contact-request-button/contact-request-button';
+import { NeighborhoodLabel } from '../../../../shared/components/neighborhood-label/neighborhood-label';
 import { SightingService } from '../../sighting.service';
 
 @Component({
   selector: 'app-sighting-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, ContactRequestButton],
+  imports: [DatePipe, RouterLink, ContactRequestButton, NeighborhoodLabel],
   template: `
     @if (sighting(); as sighting) {
       <div class="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6">
@@ -36,6 +37,9 @@ import { SightingService } from '../../sighting.service';
         <p class="text-sm text-[var(--color-text)]">{{ sighting.description }}</p>
         <p class="text-xs text-[var(--color-text)] opacity-70">
           Visto el {{ sighting.observedAt | date: 'medium' }}
+        </p>
+        <p class="text-xs text-[var(--color-text)] opacity-70">
+          <app-neighborhood-label [neighborhoodId]="sighting.neighborhoodId" />
         </p>
 
         @if (session.isAuthenticated()) {

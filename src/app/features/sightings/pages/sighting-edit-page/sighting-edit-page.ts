@@ -49,10 +49,6 @@ import { SightingService } from '../../sighting.service';
 
           <div class="flex flex-col gap-1">
             <span class="text-sm">Ubicación</span>
-            <p class="text-xs text-[var(--color-text)] opacity-70">
-              Se mantiene la ubicación actual. El backend no permite recuperar el departamento/ciudad de un
-              barrio ya guardado, así que si quieres cambiarla vuelve a elegir los tres campos.
-            </p>
             <app-geography-cascade-selector formControlName="location" />
           </div>
 
