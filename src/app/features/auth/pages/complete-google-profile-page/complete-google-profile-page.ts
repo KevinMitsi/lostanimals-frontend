@@ -12,23 +12,29 @@ import { AuthService } from '../../auth.service';
   imports: [ReactiveFormsModule],
   template: `
     <div class="mx-auto flex min-h-full max-w-md flex-col gap-6 px-4 py-10">
-      <div>
-        <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">
-          Completa tu perfil
-        </h1>
-        <p class="mt-2 text-sm opacity-75">
-          Google nos entregó tu nombre y correo. Necesitamos estos dos datos para habilitar tu cuenta.
-        </p>
-      </div>
+      <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Completa tu perfil</h1>
+      <p class="text-sm text-[var(--color-text)] opacity-70">
+        Ya iniciaste sesión con Google. Solo necesitamos tu teléfono y número de cédula para terminar de
+        crear tu cuenta.
+      </p>
+
+      @if (formError()) {
+        <p class="banner-alert">{{ formError() }}</p>
+      }
 
       <form [formGroup]="form" (ngSubmit)="submit()" class="card flex flex-col gap-4" novalidate>
-        @if (formError()) { <p class="banner-alert">{{ formError() }}</p> }
-
         <label class="field-label">
           Teléfono (+573XXXXXXXXX)
-          <input type="tel" formControlName="phone" placeholder="+573001234567" class="field-input" />
+          <input
+            type="tel"
+            formControlName="phone"
+            placeholder="+573001234567"
+            class="field-input"
+          />
           @if (isInvalid('phone')) {
-            <span class="text-xs text-[var(--color-alert-strong)]">Formato requerido: +573XXXXXXXXX.</span>
+            <span class="text-xs text-[var(--color-alert-strong)]">
+              Formato colombiano requerido: +573XXXXXXXXX.
+            </span>
           }
         </label>
 
@@ -49,6 +55,7 @@ import { AuthService } from '../../auth.service';
 })
 export class CompleteGoogleProfilePage {
   private readonly fb = inject(FormBuilder);
+  private readonly authService = inject(AuthService);
   private readonly auth = inject(AuthService);
   private readonly session = inject(SessionStore);
   private readonly router = inject(Router);

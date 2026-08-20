@@ -3,6 +3,7 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { environment } from '../../../../../environments/environment';
 import { AppApiError } from '../../../../core/http/problem-detail.util';
+import { GoogleSignInButton } from '../../../../shared/components/google-sign-in-button/google-sign-in-button';
 import { TurnstileWidget } from '../../../../shared/components/turnstile-widget/turnstile-widget';
 import { GoogleAuthButton } from '../../../../shared/components/google-auth-button/google-auth-button';
 import { AuthService } from '../../auth.service';
@@ -10,7 +11,7 @@ import { AuthService } from '../../auth.service';
 @Component({
   selector: 'app-login-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, TurnstileWidget, GoogleAuthButton],
+  imports: [ReactiveFormsModule, RouterLink, TurnstileWidget, GoogleAuthButton, GoogleSignInButton],
   template: `
     <div class="mx-auto flex min-h-full max-w-md flex-col gap-6 px-4 py-8">
       <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Iniciar sesión</h1>
@@ -87,6 +88,17 @@ import { AuthService } from '../../auth.service';
         <a routerLink="/register" class="btn-link block text-center">
           Crear una cuenta
         </a>
+
+        <div class="flex items-center gap-3 text-xs text-[var(--color-text)] opacity-60">
+          <span class="h-px flex-1 bg-[var(--color-surface)]"></span>
+          o
+          <span class="h-px flex-1 bg-[var(--color-surface)]"></span>
+        </div>
+
+        <p class="text-center text-xs text-[var(--color-text)] opacity-70">
+          ¿Ya tienes una cuenta con Google? Inicia sesión con ella.
+        </p>
+        <app-google-sign-in-button text="signin_with" (credential)="onGoogleCredential($event)" />
       </form>
     </div>
   `,
@@ -142,22 +154,24 @@ export class LoginPage {
     });
   }
 
-  protected authenticateWithGoogle(credential: string): void {
+  protected onGoogleCredential(credential: string): void {
     this.formError.set(null);
+    this.emailNotVerified.set(false);
     this.submitting.set(true);
-    this.authService.authenticateWithGoogle({ credential, acceptsDataProcessing: false }).subscribe({
-      next: (response) => {
+
+    this.authService.loginWithGoogle({ credential, acceptsDataProcessing: false }).subscribe({
+      next: (result) => {
         this.submitting.set(false);
-        const destination = response.profileComplete
-          ? (this.route.snapshot.queryParamMap.get('returnUrl') ?? '/')
-          : '/complete-profile';
-        this.router.navigateByUrl(destination);
+        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/';
+        this.router.navigateByUrl(result.profileComplete ? returnUrl : '/complete-profile');
       },
       error: (error: AppApiError) => {
         this.submitting.set(false);
-        this.formError.set(error.status === 422
-          ? 'Para crear una cuenta con Google, ve a Crear una cuenta y acepta el tratamiento de datos.'
-          : error.detail);
+        if (error.status === 422) {
+          this.formError.set('No encontramos una cuenta con este correo de Google. Crea una cuenta primero.');
+          return;
+        }
+        this.formError.set(error.detail);
       },
     });
   }

@@ -63,6 +63,14 @@
     opacity: 0.6;
   }
 
+  .checkbox {
+    height: 1.25rem;
+    width: 1.25rem;
+    flex-shrink: 0;
+    border-radius: 0.4rem;
+    accent-color: var(--color-primary-strong);
+  }
+
   .btn {
     display: inline-flex;
     align-items: center;
