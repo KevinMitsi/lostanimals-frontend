@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { SessionStore } from '../../../../core/auth/session.store';
 import { CONVERSATION_STATUS_LABELS } from '../../../../core/labels/labels';
 import { ConversationResponse } from '../../../../core/models';
+import { ContactRequestService } from '../../../contact-requests/contact-request.service';
 import { ConversationService } from '../../conversation.service';
 
 @Component({
@@ -13,7 +14,16 @@ import { ConversationService } from '../../conversation.service';
     <div class="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6">
       <div class="flex items-center justify-between">
         <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Mensajes</h1>
-        <a routerLink="/contact-requests" class="btn-link">Solicitudes de contacto</a>
+        <a routerLink="/contact-requests" class="btn btn-ghost relative">
+          Solicitudes de contacto
+          @if (pendingRequestCount() > 0) {
+            <span
+              class="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-alert)] px-1 text-[10px] font-bold text-[var(--color-on-alert)]"
+            >
+              {{ pendingRequestCount() }}
+            </span>
+          }
+        </a>
       </div>
 
       @if (loading()) {
@@ -38,11 +48,13 @@ import { ConversationService } from '../../conversation.service';
 })
 export class ConversationListPage {
   private readonly conversationService = inject(ConversationService);
+  private readonly contactRequestService = inject(ContactRequestService);
   private readonly session = inject(SessionStore);
 
   protected readonly statusLabels = CONVERSATION_STATUS_LABELS;
   protected readonly conversations = signal<ConversationResponse[]>([]);
   protected readonly loading = signal(true);
+  protected readonly pendingRequestCount = signal(0);
 
   private readonly userId = computed(() => this.session.userId());
 
@@ -53,6 +65,12 @@ export class ConversationListPage {
         this.conversations.set(conversations);
       },
       error: () => this.loading.set(false),
+    });
+
+    this.contactRequestService.getReceived().subscribe({
+      next: (requests) => {
+        this.pendingRequestCount.set(requests.filter((r) => r.status === 'PENDING').length);
+      },
     });
   }
 
