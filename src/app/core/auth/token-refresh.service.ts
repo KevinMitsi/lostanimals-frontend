@@ -28,7 +28,7 @@ export class TokenRefreshService {
     const body: OpaqueTokenRequest = { token: refreshToken };
 
     this.refreshInFlight$ = this.http.post<TokenResponse>(`${environment.apiUrl}/auth/refresh`, body).pipe(
-      tap((tokens) => this.session.setSession(tokens)),
+      tap((tokens) => this.session.setSession(tokens, this.session.profileComplete())),
       shareReplay(1),
       finalize(() => {
         this.refreshInFlight$ = null;

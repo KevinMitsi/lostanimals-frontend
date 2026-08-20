@@ -12,6 +12,7 @@ import { GoogleSignInButton } from '../../../../shared/components/google-sign-in
 import { PasswordStrengthChecklist } from '../../../../shared/components/password-strength-checklist/password-strength-checklist';
 import { TermsModal } from '../../../../shared/components/terms-modal/terms-modal';
 import { TurnstileWidget } from '../../../../shared/components/turnstile-widget/turnstile-widget';
+import { GoogleAuthButton } from '../../../../shared/components/google-auth-button/google-auth-button';
 import { AuthService } from '../../auth.service';
 
 function passwordsMatchValidator(control: AbstractControl): ValidationErrors | null {
@@ -41,6 +42,28 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
               {{ formError() }}
             </p>
           }
+
+          <label class="flex min-h-[44px] items-center gap-2 text-sm">
+            <input type="checkbox" formControlName="acceptsDataProcessing" class="h-5 w-5" />
+            Acepto el tratamiento de mis datos personales.
+          </label>
+          @if (isInvalid('acceptsDataProcessing')) {
+            <span class="-mt-2 text-xs text-[var(--color-alert-strong)]">
+              Debes aceptar el tratamiento de datos para continuar.
+            </span>
+          }
+
+          <app-google-auth-button
+            [disabled]="submitting() || !form.controls.acceptsDataProcessing.value"
+            (credentialReceived)="authenticateWithGoogle($event)"
+          />
+          <p class="-mt-2 text-center text-xs text-[var(--color-text)] opacity-70">
+            Puedes continuar con Google o completar todos los datos manualmente.
+          </p>
+          <div class="flex items-center gap-3 text-xs uppercase tracking-wide opacity-60">
+            <span class="h-px flex-1 bg-[var(--color-surface)]"></span><span>o completa los datos</span>
+            <span class="h-px flex-1 bg-[var(--color-surface)]"></span>
+          </div>
 
           <label class="field-label">
             Nombre a mostrar

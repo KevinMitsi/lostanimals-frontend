@@ -1,5 +1,5 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AppApiError } from '../../../../core/http/problem-detail.util';
@@ -9,6 +9,8 @@ import {
   GeographyLocationValue,
 } from '../../../../shared/components/geography-cascade-selector/geography-cascade-selector';
 import { ImagePicker } from '../../../../shared/components/image-picker/image-picker';
+import { SightingMap } from '../../../../shared/components/sighting-map/sighting-map';
+import { GeoCoordinates, GeolocationService } from '../../../../core/location/geolocation.service';
 import { SightingService } from '../../sighting.service';
 
 const EMPTY_LOCATION: GeographyLocationValue = { departmentId: null, cityId: null, neighborhoodId: null };
@@ -17,7 +19,7 @@ const STEP_LABELS = ['Datos', 'Ubicación', 'Imágenes', 'Confirmar'] as const;
 @Component({
   selector: 'app-sighting-create-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, GeographyCascadeSelector, ImagePicker, DecimalPipe, DatePipe],
+  imports: [ReactiveFormsModule, GeographyCascadeSelector, ImagePicker, SightingMap, DecimalPipe, DatePipe],
   template: `
     <div class="mx-auto flex max-w-xl flex-col gap-5 px-4 py-6">
       <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Reportar avistamiento</h1>
@@ -82,6 +84,18 @@ const STEP_LABELS = ['Datos', 'Ubicación', 'Imágenes', 'Confirmar'] as const;
           @if (step() === 1) {
             <app-geography-cascade-selector formControlName="location" />
 
+            @if (location.errorMessage()) {
+              <p class="text-sm text-[var(--color-alert-strong)]">{{ location.errorMessage() }}</p>
+            }
+
+            <app-sighting-map
+              [center]="location.position()"
+              [selectable]="true"
+              [selectedPoint]="selectedPoint()"
+              ariaLabel="Mapa para elegir la ubicación exacta del avistamiento"
+              (pointSelected)="selectPoint($event)"
+            />
+
             <button type="button" (click)="useMyLocation()" class="btn btn-primary">📍 Usar mi ubicación</button>
 
             @if (latitude() !== null && longitude() !== null) {
@@ -132,6 +146,8 @@ export class SightingCreatePage {
   private readonly fb = inject(FormBuilder);
   private readonly sightingService = inject(SightingService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
+  protected readonly location = inject(GeolocationService);
 
   protected readonly resourceBasePath = this.sightingService.basePath;
   protected readonly stepLabels = STEP_LABELS;
@@ -147,6 +163,7 @@ export class SightingCreatePage {
    */
   protected readonly latitude = signal<number | null>(null);
   protected readonly longitude = signal<number | null>(null);
+  protected readonly selectedPoint = signal<GeoCoordinates | null>(null);
 
   protected readonly form = this.fb.nonNullable.group({
     species: ['DOG'],
@@ -156,14 +173,24 @@ export class SightingCreatePage {
     imageKeys: this.fb.nonNullable.control<string[]>([]),
   });
 
-  protected useMyLocation(): void {
-    if (!navigator.geolocation) {
-      return;
-    }
-    navigator.geolocation.getCurrentPosition((position) => {
-      this.latitude.set(position.coords.latitude);
-      this.longitude.set(position.coords.longitude);
+  constructor() {
+    effect(() => {
+      const position = this.location.position();
+      if (position && this.selectedPoint() === null) this.selectPoint(position);
     });
+    this.destroyRef.onDestroy(() => this.location.stopWatching());
+  }
+
+  protected useMyLocation(): void {
+    const position = this.location.position();
+    if (position) this.selectPoint(position);
+    this.location.startWatching();
+  }
+
+  protected selectPoint(point: GeoCoordinates): void {
+    this.selectedPoint.set(point);
+    this.latitude.set(point.latitude);
+    this.longitude.set(point.longitude);
   }
 
   protected canAdvance(): boolean {
@@ -187,6 +214,7 @@ export class SightingCreatePage {
   protected nextStep(): void {
     if (this.canAdvance()) {
       this.step.update((s) => Math.min(s + 1, 3));
+      if (this.step() === 1) this.location.startWatching();
     }
   }
 

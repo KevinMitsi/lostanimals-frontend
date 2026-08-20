@@ -1,6 +1,15 @@
 import { Routes } from '@angular/router';
+import { authGuard } from '../../core/auth/auth.guard';
 
 export const AUTH_ROUTES: Routes = [
+  {
+    path: 'complete-profile',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/complete-google-profile-page/complete-google-profile-page').then(
+        (m) => m.CompleteGoogleProfilePage,
+      ),
+  },
   {
     path: 'register',
     loadComponent: () => import('./pages/register-page/register-page').then((m) => m.RegisterPage),

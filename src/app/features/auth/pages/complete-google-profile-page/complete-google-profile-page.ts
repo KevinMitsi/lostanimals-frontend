@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AppApiError } from '../../../../core/http/problem-detail.util';
+import { SessionStore } from '../../../../core/auth/session.store';
+import { AppApiError, splitFieldError } from '../../../../core/http/problem-detail.util';
 import { colombianPhoneValidator, documentNumberValidator } from '../../../../core/validators/validators';
 import { AuthService } from '../../auth.service';
 
@@ -39,14 +40,14 @@ import { AuthService } from '../../auth.service';
 
         <label class="field-label">
           Número de cédula
-          <input type="text" formControlName="documentNumber" class="field-input" />
+          <input type="text" formControlName="documentNumber" inputmode="numeric" class="field-input" />
           @if (isInvalid('documentNumber')) {
             <span class="text-xs text-[var(--color-alert-strong)]">Debe tener entre 6 y 10 dígitos.</span>
           }
         </label>
 
         <button type="submit" [disabled]="submitting()" class="btn btn-primary">
-          {{ submitting() ? 'Guardando…' : 'Continuar' }}
+          {{ submitting() ? 'Guardando…' : 'Completar perfil' }}
         </button>
       </form>
     </div>
@@ -55,38 +56,48 @@ import { AuthService } from '../../auth.service';
 export class CompleteGoogleProfilePage {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
+  private readonly auth = inject(AuthService);
+  private readonly session = inject(SessionStore);
   private readonly router = inject(Router);
 
   protected readonly submitting = signal(false);
   protected readonly formError = signal<string | null>(null);
-
   protected readonly form = this.fb.nonNullable.group({
     phone: ['', [Validators.required, colombianPhoneValidator()]],
     documentNumber: ['', [Validators.required, documentNumberValidator()]],
   });
 
-  protected isInvalid(controlName: string): boolean {
-    const control = this.form.get(controlName);
+  constructor() {
+    if (this.session.profileComplete()) this.router.navigateByUrl('/');
+  }
+
+  protected isInvalid(name: string): boolean {
+    const control = this.form.get(name);
     return !!control && control.invalid && (control.touched || control.dirty);
   }
 
   protected submit(): void {
     this.formError.set(null);
-
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-
     this.submitting.set(true);
-    this.authService.completeGoogleProfile(this.form.getRawValue()).subscribe({
+    this.auth.completeGoogleProfile(this.form.getRawValue()).subscribe({
       next: () => {
         this.submitting.set(false);
         this.router.navigateByUrl('/');
       },
       error: (error: AppApiError) => {
         this.submitting.set(false);
-        this.formError.set(error.detail);
+        if (error.status === 400 && error.errors) {
+          for (const entry of error.errors) {
+            const { field, message } = splitFieldError(entry);
+            this.form.get(field)?.setErrors({ server: message });
+          }
+        } else {
+          this.formError.set(error.detail);
+        }
       },
     });
   }
