@@ -6,6 +6,15 @@ import { sha256Base64 } from './checksum.util';
 
 const MAX_FILE_SIZE_BYTES = 8 * 1024 * 1024;
 const ALLOWED_CONTENT_TYPES: PrepareImageUploadRequest['contentType'][] = ['image/jpeg', 'image/png'];
+const BROWSER_MANAGED_HEADERS = new Set(['content-length', 'host']);
+
+export function browserUploadHeaders(requiredHeaders: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(requiredHeaders).filter(
+      ([name]) => !BROWSER_MANAGED_HEADERS.has(name.toLowerCase()),
+    ),
+  );
+}
 
 export interface UploadedImage {
   objectKey: string;
@@ -53,7 +62,7 @@ export class ImageUploadService {
       }),
       switchMap((prepared) =>
         this.http
-          .put(prepared.uploadUrl, file, { headers: prepared.requiredHeaders })
+          .put(prepared.uploadUrl, file, { headers: browserUploadHeaders(prepared.requiredHeaders) })
           .pipe(map(() => ({ objectKey: prepared.objectKey, previewUrl: URL.createObjectURL(file) }))),
       ),
     );
