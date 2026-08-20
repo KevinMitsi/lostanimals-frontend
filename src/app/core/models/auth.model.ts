@@ -58,31 +58,6 @@ export interface OpaqueTokenRequest {
   token: string;
 }
 
-export interface GoogleAuthenticationRequest {
-  credential: string;
-  acceptsDataProcessing: boolean;
-}
-
-export interface GoogleAuthenticationResponse extends TokenResponse {
-  profileComplete: boolean;
-  newUser: boolean;
-}
-
-export interface CompleteGoogleProfileRequest {
-  phone: string;
-  documentNumber: string;
-}
-
-export interface UserProfileResponse {
-  userId: string;
-  email: string;
-  displayName: string;
-  phone: string;
-  documentNumber: string;
-  pictureUrl: string | null;
-  profileComplete: boolean;
-}
-
 export interface EmailActionRequest {
   email: string;
   turnstileToken: string;

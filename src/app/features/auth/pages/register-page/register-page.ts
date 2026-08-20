@@ -8,11 +8,11 @@ import {
   documentNumberValidator,
   passwordComplexityValidator,
 } from '../../../../core/validators/validators';
-import { GoogleSignInButton } from '../../../../shared/components/google-sign-in-button/google-sign-in-button';
 import { PasswordStrengthChecklist } from '../../../../shared/components/password-strength-checklist/password-strength-checklist';
 import { TermsModal } from '../../../../shared/components/terms-modal/terms-modal';
 import { TurnstileWidget } from '../../../../shared/components/turnstile-widget/turnstile-widget';
 import { GoogleAuthButton } from '../../../../shared/components/google-auth-button/google-auth-button';
+import { PhoneInput } from '../../../../shared/components/phone-input/phone-input';
 import { AuthService } from '../../auth.service';
 
 function passwordsMatchValidator(control: AbstractControl): ValidationErrors | null {
@@ -24,7 +24,15 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
 @Component({
   selector: 'app-register-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, TurnstileWidget, GoogleSignInButton, TermsModal, PasswordStrengthChecklist],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    TurnstileWidget,
+    GoogleAuthButton,
+    TermsModal,
+    PasswordStrengthChecklist,
+    PhoneInput,
+  ],
   template: `
     <div class="mx-auto flex min-h-full max-w-md flex-col gap-6 px-4 py-10">
       <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Crear cuenta</h1>
@@ -42,28 +50,6 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
               {{ formError() }}
             </p>
           }
-
-          <label class="flex min-h-[44px] items-center gap-2 text-sm">
-            <input type="checkbox" formControlName="acceptsDataProcessing" class="h-5 w-5" />
-            Acepto el tratamiento de mis datos personales.
-          </label>
-          @if (isInvalid('acceptsDataProcessing')) {
-            <span class="-mt-2 text-xs text-[var(--color-alert-strong)]">
-              Debes aceptar el tratamiento de datos para continuar.
-            </span>
-          }
-
-          <app-google-auth-button
-            [disabled]="submitting() || !form.controls.acceptsDataProcessing.value"
-            (credentialReceived)="authenticateWithGoogle($event)"
-          />
-          <p class="-mt-2 text-center text-xs text-[var(--color-text)] opacity-70">
-            Puedes continuar con Google o completar todos los datos manualmente.
-          </p>
-          <div class="flex items-center gap-3 text-xs uppercase tracking-wide opacity-60">
-            <span class="h-px flex-1 bg-[var(--color-surface)]"></span><span>o completa los datos</span>
-            <span class="h-px flex-1 bg-[var(--color-surface)]"></span>
-          </div>
 
           <label class="field-label">
             Nombre a mostrar
@@ -92,16 +78,11 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
           </label>
 
           <label class="field-label">
-            Teléfono (+573XXXXXXXXX)
-            <input
-              type="tel"
-              formControlName="phone"
-              placeholder="+573001234567"
-              class="field-input"
-            />
+            Teléfono
+            <app-phone-input formControlName="phone" />
             @if (isInvalid('phone')) {
               <span class="text-xs text-[var(--color-alert-strong)]">
-                Formato colombiano requerido: +573XXXXXXXXX.
+                Ingresa los 10 dígitos de tu número, empezando en 3.
               </span>
             }
           </label>
@@ -186,7 +167,11 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
             <span class="h-px flex-1 bg-[var(--color-surface)]"></span>
           </div>
 
-          <app-google-sign-in-button text="signup_with" (credential)="onGoogleCredential($event)" />
+          <app-google-auth-button
+            text="signup_with"
+            [disabled]="submitting() || !form.controls.acceptsDataProcessing.value"
+            (credentialReceived)="onGoogleCredential($event)"
+          />
 
           <a routerLink="/login" class="btn-link block text-center">Ya tengo cuenta, iniciar sesión</a>
         </form>
@@ -271,7 +256,7 @@ export class RegisterPage {
     }
 
     this.submitting.set(true);
-    this.authService.loginWithGoogle({ credential, acceptsDataProcessing }).subscribe({
+    this.authService.authenticateWithGoogle({ credential, acceptsDataProcessing }).subscribe({
       next: (result) => {
         this.submitting.set(false);
         this.router.navigateByUrl(result.profileComplete ? '/' : '/complete-profile');

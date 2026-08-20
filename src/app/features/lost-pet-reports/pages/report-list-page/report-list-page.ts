@@ -31,44 +31,6 @@ const DEFAULT_RADIUS_METERS = 5000;
 
       <app-nearby-sightings-map />
 
-      <form [formGroup]="filtersForm" (ngSubmit)="applyFilters()" class="card-soft flex flex-col gap-3">
-        <div class="flex flex-col gap-3 sm:flex-row">
-          <label class="field-label flex-1">
-            Especie
-            <select formControlName="species" class="field-input">
-              <option value="">Todas</option>
-              <option value="DOG">Perro</option>
-              <option value="CAT">Gato</option>
-              <option value="BIRD">Ave</option>
-              <option value="OTHER">Otro</option>
-            </select>
-          </label>
-
-          <label class="field-label flex-1">
-            Estado
-            <select formControlName="status" class="field-input">
-              <option value="">Todos</option>
-              <option value="LOST">Perdido</option>
-              <option value="REUNITED">Reencontrado</option>
-              <option value="CLOSED">Cerrado</option>
-            </select>
-          </label>
-        </div>
-
-        <app-geography-cascade-selector formControlName="location" />
-
-        <div class="flex flex-col gap-3 sm:flex-row">
-          <label class="field-label flex-1">
-            Desde
-            <input type="date" formControlName="from" class="field-input" />
-          </label>
-          <label class="field-label flex-1">
-            Hasta
-            <input type="date" formControlName="to" class="field-input" />
-          </label>
-        </div>
-
-        <div class="flex items-center gap-2">
       <button
         type="button"
         (click)="filtersOpen.set(!filtersOpen())"

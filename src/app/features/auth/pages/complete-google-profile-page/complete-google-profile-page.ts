@@ -4,12 +4,13 @@ import { Router } from '@angular/router';
 import { SessionStore } from '../../../../core/auth/session.store';
 import { AppApiError, splitFieldError } from '../../../../core/http/problem-detail.util';
 import { colombianPhoneValidator, documentNumberValidator } from '../../../../core/validators/validators';
+import { PhoneInput } from '../../../../shared/components/phone-input/phone-input';
 import { AuthService } from '../../auth.service';
 
 @Component({
   selector: 'app-complete-google-profile-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, PhoneInput],
   template: `
     <div class="mx-auto flex min-h-full max-w-md flex-col gap-6 px-4 py-10">
       <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Completa tu perfil</h1>
@@ -24,16 +25,11 @@ import { AuthService } from '../../auth.service';
 
       <form [formGroup]="form" (ngSubmit)="submit()" class="card flex flex-col gap-4" novalidate>
         <label class="field-label">
-          Teléfono (+573XXXXXXXXX)
-          <input
-            type="tel"
-            formControlName="phone"
-            placeholder="+573001234567"
-            class="field-input"
-          />
+          Teléfono
+          <app-phone-input formControlName="phone" />
           @if (isInvalid('phone')) {
             <span class="text-xs text-[var(--color-alert-strong)]">
-              Formato colombiano requerido: +573XXXXXXXXX.
+              Ingresa los 10 dígitos de tu número, empezando en 3.
             </span>
           }
         </label>
@@ -55,7 +51,6 @@ import { AuthService } from '../../auth.service';
 })
 export class CompleteGoogleProfilePage {
   private readonly fb = inject(FormBuilder);
-  private readonly authService = inject(AuthService);
   private readonly auth = inject(AuthService);
   private readonly session = inject(SessionStore);
   private readonly router = inject(Router);

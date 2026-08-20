@@ -13,9 +13,6 @@ import {
   RegisteredUserResponse,
   ResetPasswordRequest,
   TokenResponse,
-  GoogleAuthenticationRequest,
-  GoogleAuthenticationResponse,
-  CompleteGoogleProfileRequest,
   UserProfileResponse,
 } from '../../core/models';
 import { SessionStore } from '../../core/auth/session.store';
