@@ -38,6 +38,7 @@ export class GoogleAuthButton implements AfterViewInit {
   private readonly host = viewChild.required<ElementRef<HTMLElement>>('host');
 
   @Input() disabled = false;
+  @Input() text: 'continue_with' | 'signup_with' | 'signin_with' = 'continue_with';
   @Output() readonly credentialReceived = new EventEmitter<string>();
   protected readonly loadError = signal(false);
 
@@ -51,7 +52,7 @@ export class GoogleAuthButton implements AfterViewInit {
         type: 'standard',
         theme: 'outline',
         size: 'large',
-        text: 'continue_with',
+        text: this.text,
         shape: 'rectangular',
         width: 320,
         locale: 'es',
