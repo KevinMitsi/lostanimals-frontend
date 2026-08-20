@@ -19,7 +19,7 @@ const DEFAULT_RADIUS_METERS = 5000;
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ReactiveFormsModule, RouterLink, ReportCard, GeographyCascadeSelector, NearbySightingsMap],
   template: `
-    <div class="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-6">
+    <div class="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-6">
       <div class="flex items-center justify-between gap-2">
         <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Mascotas perdidas</h1>
         @if (session.isAuthenticated()) {
@@ -117,7 +117,7 @@ const DEFAULT_RADIUS_METERS = 5000;
         </p>
       }
 
-      <div class="flex flex-col gap-3">
+      <div class="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
         @for (report of items(); track report.id) {
           <app-report-card [report]="report" />
         }

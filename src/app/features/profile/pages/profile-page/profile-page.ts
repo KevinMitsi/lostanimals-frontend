@@ -3,6 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { SessionStore } from '../../../../core/auth/session.store';
 import { USER_ROLE_LABELS } from '../../../../core/labels/labels';
 import { AuthService } from '../../../auth/auth.service';
+import { ContactRequestService } from '../../../contact-requests/contact-request.service';
 
 @Component({
   selector: 'app-profile-page',
@@ -22,7 +23,16 @@ import { AuthService } from '../../../auth/auth.service';
         <div class="flex flex-wrap gap-2">
           <a routerLink="/lost-pet-reports/mine" class="btn btn-ghost">Mis reportes</a>
           <a routerLink="/sightings/mine" class="btn btn-ghost">Mis avistamientos</a>
-          <a routerLink="/contact-requests" class="btn btn-ghost">Solicitudes de contacto</a>
+          <a routerLink="/contact-requests" class="btn btn-ghost relative">
+            Solicitudes de contacto
+            @if (pendingRequestCount() > 0) {
+              <span
+                class="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-alert)] px-1 text-[10px] font-bold text-[var(--color-on-alert)]"
+              >
+                {{ pendingRequestCount() }}
+              </span>
+            }
+          </a>
           <a routerLink="/onboarding" class="btn btn-ghost">Ver tutorial de nuevo</a>
         </div>
       </div>
@@ -50,9 +60,19 @@ export class ProfilePage {
   protected readonly roleLabels = USER_ROLE_LABELS;
 
   private readonly authService = inject(AuthService);
+  private readonly contactRequestService = inject(ContactRequestService);
   private readonly router = inject(Router);
 
   protected readonly loggingOut = signal(false);
+  protected readonly pendingRequestCount = signal(0);
+
+  constructor() {
+    this.contactRequestService.getReceived().subscribe({
+      next: (requests) => {
+        this.pendingRequestCount.set(requests.filter((r) => r.status === 'PENDING').length);
+      },
+    });
+  }
 
   protected logout(): void {
     this.loggingOut.set(true);

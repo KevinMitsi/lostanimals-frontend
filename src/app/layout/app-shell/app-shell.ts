@@ -20,9 +20,9 @@ interface NavItem {
   template: `
     <app-toast-container />
 
-    <header class="hidden items-center justify-between px-6 py-4 md:flex">
-      <span class="text-lg font-semibold text-[var(--color-primary-strong)]">LostAnimals</span>
-      <nav class="flex items-center gap-1 rounded-full bg-white px-2 py-1.5 shadow-[0_2px_14px_rgba(47,54,59,0.08)]">
+    <header class="hidden grid-cols-3 items-center px-6 py-4 lg:grid">
+      <span class="justify-self-start text-lg font-semibold text-[var(--color-primary-strong)]">LostAnimals</span>
+      <nav class="col-start-2 flex items-center justify-self-center gap-1 rounded-full bg-white px-2 py-1.5 shadow-[0_2px_14px_rgba(47,54,59,0.08)]">
         @for (item of navItems(); track item.path) {
           <a
             [routerLink]="item.path"
@@ -37,11 +37,11 @@ interface NavItem {
       </nav>
     </header>
 
-    <main class="flex-1 pb-[calc(5.85rem+var(--safe-area-bottom))] md:pb-8">
+    <main class="flex-1 pb-[calc(5.85rem+var(--safe-area-bottom))] lg:pb-8">
       <router-outlet />
     </main>
 
-    <nav class="floating-nav md:hidden">
+    <nav class="floating-nav lg:hidden">
       @for (item of navItems(); track item.path) {
         <a
           [routerLink]="item.path"
