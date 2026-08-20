@@ -22,13 +22,29 @@ const STEP_LABELS = ['Datos', 'Ubicación', 'Imágenes', 'Confirmar'] as const;
     <div class="mx-auto flex max-w-xl flex-col gap-5 px-4 py-6">
       <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Reportar mascota perdida</h1>
 
-      <ol class="flex gap-2">
-        @for (label of stepLabels; track label; let i = $index) {
-          <li
-            class="flex-1 rounded-full py-2 text-center text-xs font-semibold transition-colors"
-            [class]="i <= step() ? 'bg-[var(--color-primary-strong)] text-[var(--color-on-primary)]' : 'bg-white text-[var(--color-text)] opacity-60 shadow-[0_1px_4px_rgba(47,54,59,0.08)]'"
-          >
-            {{ label }}
+      <ol class="flex items-start">
+        @for (label of stepLabels; track label; let i = $index; let last = $last) {
+          <li class="flex flex-1 flex-col gap-1.5">
+            <div class="flex items-center">
+              <span
+                class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors"
+                [class]="i <= step() ? 'bg-[var(--color-primary-strong)] text-[var(--color-on-primary)]' : 'bg-white text-[var(--color-text)] opacity-60 shadow-[0_1px_4px_rgba(47,54,59,0.08)]'"
+              >
+                {{ i + 1 }}
+              </span>
+              @if (!last) {
+                <span
+                  class="h-0.5 flex-1 transition-colors"
+                  [class]="i < step() ? 'bg-[var(--color-primary-strong)]' : 'bg-[var(--color-surface)]'"
+                ></span>
+              }
+            </div>
+            <span
+              class="block text-[11px] font-medium"
+              [class]="i <= step() ? 'text-[var(--color-primary-strong)]' : 'text-[var(--color-text)] opacity-60'"
+            >
+              {{ label }}
+            </span>
           </li>
         }
       </ol>

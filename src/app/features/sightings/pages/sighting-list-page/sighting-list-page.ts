@@ -19,15 +19,16 @@ const DEFAULT_RADIUS_METERS = 5000;
   imports: [ReactiveFormsModule, RouterLink, SightingCard, GeographyCascadeSelector],
   template: `
     <div class="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-6">
-      <div class="flex items-center justify-between gap-2">
-        <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Avistamientos</h1>
-        <div class="flex items-center gap-3">
-          @if (session.isAuthenticated()) {
-            <a routerLink="/sightings/mine" class="btn-link">Mis avistamientos</a>
-          }
-          <a routerLink="/sightings/new" class="btn btn-primary">+ Reportar</a>
-        </div>
+      <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Avistamientos</h1>
+
+      <div class="flex items-center gap-2">
+        @if (session.isAuthenticated()) {
+          <a routerLink="/sightings/mine" class="btn btn-secondary">Mis avistamientos</a>
+        }
+        <a routerLink="/sightings/new" class="btn btn-primary">+ Reportar</a>
       </div>
+
+      <hr class="border-t border-[var(--color-surface)]" />
 
       <button type="button" (click)="filtersOpen.set(!filtersOpen())" class="btn btn-ghost self-start">
         {{ filtersOpen() ? 'Ocultar filtros' : 'Filtrar' }}
