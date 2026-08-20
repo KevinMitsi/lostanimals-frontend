@@ -30,7 +30,7 @@ const DEFAULT_RADIUS_METERS = 5000;
       </div>
 
       <button type="button" (click)="filtersOpen.set(!filtersOpen())" class="btn btn-ghost self-start">
-        🔍 {{ filtersOpen() ? 'Ocultar filtros' : 'Filtrar' }}
+        {{ filtersOpen() ? 'Ocultar filtros' : 'Filtrar' }}
         @if (!filtersOpen() && activeFilterCount() > 0) {
           <span class="badge bg-[var(--color-primary-strong)] text-[var(--color-on-primary)]">
             {{ activeFilterCount() }}
@@ -91,8 +91,12 @@ const DEFAULT_RADIUS_METERS = 5000;
 
       @if (loading() && items().length === 0) {
         <p class="text-center text-sm text-[var(--color-text)]">Cargando…</p>
-      } @else if (items().length === 0) {
+      } @else if (items().length === 0 && activeFilterCount() > 0) {
         <p class="text-center text-sm text-[var(--color-text)]">No se encontraron avistamientos con esos filtros.</p>
+      } @else if (items().length === 0) {
+        <p class="text-center text-sm text-[var(--color-text)] opacity-70">
+          Actualmente no hay avistamientos reportados. Aquí aparecerán las tarjetas en cuanto haya avistamientos.
+        </p>
       }
 
       <div class="flex flex-col gap-3">

@@ -3,13 +3,17 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, catchError, of, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
+  CompleteGoogleProfileRequest,
   EmailActionRequest,
+  GoogleAuthenticationRequest,
+  GoogleAuthenticationResponse,
   LoginRequest,
   OpaqueTokenRequest,
   RegisterUserRequest,
   RegisteredUserResponse,
   ResetPasswordRequest,
   TokenResponse,
+  UserProfileResponse,
 } from '../../core/models';
 import { SessionStore } from '../../core/auth/session.store';
 
@@ -28,6 +32,18 @@ export class AuthService {
     return this.http
       .post<TokenResponse>(`${this.base}/login`, request)
       .pipe(tap((tokens) => this.session.setSession(tokens)));
+  }
+
+  /** Crea cuenta o inicia sesión con una credencial de Google Identity Services (mismo endpoint para ambos casos). */
+  loginWithGoogle(request: GoogleAuthenticationRequest): Observable<GoogleAuthenticationResponse> {
+    return this.http
+      .post<GoogleAuthenticationResponse>(`${this.base}/google`, request)
+      .pipe(tap((tokens) => this.session.setSession(tokens)));
+  }
+
+  /** Completa teléfono/cédula para una cuenta creada con Google (`newUser && !profileComplete`). */
+  completeGoogleProfile(request: CompleteGoogleProfileRequest): Observable<UserProfileResponse> {
+    return this.http.put<UserProfileResponse>(`${environment.apiUrl}/users/me/profile`, request);
   }
 
   verifyEmail(token: string): Observable<void> {

@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal, viewChild } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { environment } from '../../../../../environments/environment';
 import { AppApiError, splitFieldError } from '../../../../core/http/problem-detail.util';
 import {
@@ -8,6 +8,9 @@ import {
   documentNumberValidator,
   passwordComplexityValidator,
 } from '../../../../core/validators/validators';
+import { GoogleSignInButton } from '../../../../shared/components/google-sign-in-button/google-sign-in-button';
+import { PasswordStrengthChecklist } from '../../../../shared/components/password-strength-checklist/password-strength-checklist';
+import { TermsModal } from '../../../../shared/components/terms-modal/terms-modal';
 import { TurnstileWidget } from '../../../../shared/components/turnstile-widget/turnstile-widget';
 import { AuthService } from '../../auth.service';
 
@@ -20,7 +23,7 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
 @Component({
   selector: 'app-register-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, TurnstileWidget],
+  imports: [ReactiveFormsModule, RouterLink, TurnstileWidget, GoogleSignInButton, TermsModal, PasswordStrengthChecklist],
   template: `
     <div class="mx-auto flex min-h-full max-w-md flex-col gap-6 px-4 py-10">
       <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Crear cuenta</h1>
@@ -92,17 +95,19 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
             }
           </label>
 
-          <label class="field-label">
+          <label class="field-label relative">
             Contraseña
             <input
               type="password"
               formControlName="password"
               class="field-input"
+              (focus)="passwordFocused.set(true)"
+              (blur)="passwordFocused.set(false)"
             />
-            @if (isInvalid('password')) {
-              <span class="text-xs text-[var(--color-alert-strong)]">
-                12-72 caracteres, con mayúscula, minúscula y número.
-              </span>
+            @if (passwordFocused() || isInvalid('password')) {
+              <div class="absolute bottom-full left-0 z-10 mb-2 w-full">
+                <app-password-strength-checklist [password]="form.controls.password.value" />
+              </div>
             }
           </label>
 
@@ -118,8 +123,16 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
             }
           </label>
 
+          <p class="text-xs text-[var(--color-text)] opacity-70">
+            Para crear tu cuenta (con correo o con Google) necesitamos tratar tus datos personales según
+            nuestros
+            <button type="button" (click)="termsModal().open()" class="btn-link inline">
+              términos y condiciones
+            </button>
+            .
+          </p>
           <label class="flex min-h-[44px] items-center gap-2 text-sm">
-            <input type="checkbox" formControlName="acceptsDataProcessing" class="h-5 w-5" />
+            <input type="checkbox" formControlName="acceptsDataProcessing" class="checkbox" />
             Acepto el tratamiento de mis datos personales.
           </label>
           @if (isInvalid('acceptsDataProcessing')) {
@@ -144,22 +157,35 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
             {{ submitting() ? 'Creando cuenta…' : 'Crear cuenta' }}
           </button>
 
+          <div class="flex items-center gap-3 text-xs text-[var(--color-text)] opacity-60">
+            <span class="h-px flex-1 bg-[var(--color-surface)]"></span>
+            o
+            <span class="h-px flex-1 bg-[var(--color-surface)]"></span>
+          </div>
+
+          <app-google-sign-in-button text="signup_with" (credential)="onGoogleCredential($event)" />
+
           <a routerLink="/login" class="btn-link block text-center">Ya tengo cuenta, iniciar sesión</a>
         </form>
       }
+
+      <app-terms-modal #termsModalRef />
     </div>
   `,
 })
 export class RegisterPage {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
   protected readonly siteKey = environment.turnstileSiteKey;
 
   private readonly turnstileWidget = viewChild<TurnstileWidget>('turnstile');
+  protected readonly termsModal = viewChild.required<TermsModal>('termsModalRef');
 
   protected readonly submitting = signal(false);
   protected readonly registered = signal(false);
   protected readonly formError = signal<string | null>(null);
+  protected readonly passwordFocused = signal(false);
 
   protected readonly form = this.fb.nonNullable.group(
     {
@@ -207,6 +233,29 @@ export class RegisterPage {
       error: (error: AppApiError) => {
         this.submitting.set(false);
         this.handleError(error);
+      },
+    });
+  }
+
+  protected onGoogleCredential(credential: string): void {
+    this.formError.set(null);
+    const acceptsDataProcessing = this.form.controls.acceptsDataProcessing.value;
+
+    if (!acceptsDataProcessing) {
+      this.form.controls.acceptsDataProcessing.markAsTouched();
+      this.formError.set('Debes aceptar el tratamiento de datos antes de continuar con Google.');
+      return;
+    }
+
+    this.submitting.set(true);
+    this.authService.loginWithGoogle({ credential, acceptsDataProcessing }).subscribe({
+      next: (result) => {
+        this.submitting.set(false);
+        this.router.navigateByUrl(result.profileComplete ? '/' : '/complete-profile');
+      },
+      error: (error: AppApiError) => {
+        this.submitting.set(false);
+        this.formError.set(error.detail);
       },
     });
   }

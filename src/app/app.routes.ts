@@ -45,6 +45,14 @@ export const routes: Routes = [
     loadComponent: () => import('./features/profile/pages/profile-page/profile-page').then((m) => m.ProfilePage),
   },
   {
+    path: 'complete-profile',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/auth/pages/complete-google-profile-page/complete-google-profile-page').then(
+        (m) => m.CompleteGoogleProfilePage,
+      ),
+  },
+  {
     path: 'moderator',
     canActivate: [roleGuard(['MODERATOR', 'ADMIN'])],
     loadComponent: () =>

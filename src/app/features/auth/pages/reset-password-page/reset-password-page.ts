@@ -3,6 +3,7 @@ import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Va
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AppApiError } from '../../../../core/http/problem-detail.util';
 import { passwordComplexityValidator } from '../../../../core/validators/validators';
+import { PasswordStrengthChecklist } from '../../../../shared/components/password-strength-checklist/password-strength-checklist';
 import { AuthService } from '../../auth.service';
 
 function passwordsMatchValidator(control: AbstractControl): ValidationErrors | null {
@@ -14,7 +15,7 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
 @Component({
   selector: 'app-reset-password-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, PasswordStrengthChecklist],
   template: `
     <div class="mx-auto flex min-h-full max-w-md flex-col gap-6 px-4 py-8">
       <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Restablecer contraseña</h1>
@@ -41,17 +42,19 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
             </a>
           }
 
-          <label class="field-label">
+          <label class="field-label relative">
             Nueva contraseña
             <input
               type="password"
               formControlName="newPassword"
               class="field-input"
+              (focus)="passwordFocused.set(true)"
+              (blur)="passwordFocused.set(false)"
             />
-            @if (isInvalid('newPassword')) {
-              <span class="text-xs text-[var(--color-alert-strong)]">
-                12-72 caracteres, con mayúscula, minúscula y número.
-              </span>
+            @if (passwordFocused() || isInvalid('newPassword')) {
+              <div class="absolute bottom-full left-0 z-10 mb-2 w-full">
+                <app-password-strength-checklist [password]="form.controls.newPassword.value" />
+              </div>
             }
           </label>
 
@@ -88,6 +91,7 @@ export class ResetPasswordPage {
   protected readonly submitting = signal(false);
   protected readonly done = signal(false);
   protected readonly formError = signal<string | null>(null);
+  protected readonly passwordFocused = signal(false);
 
   protected readonly form = this.fb.nonNullable.group(
     {
