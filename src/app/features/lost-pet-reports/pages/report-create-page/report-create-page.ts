@@ -4,6 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AppApiError } from '../../../../core/http/problem-detail.util';
 import { CreateLostPetReportRequest } from '../../../../core/models';
+import { notInFutureValidator, nowAsDatetimeLocal } from '../../../../core/validators/validators';
 import {
   GeographyCascadeSelector,
   GeographyLocationValue,
@@ -86,8 +87,14 @@ const STEP_LABELS = ['Datos', 'Ubicación', 'Imágenes', 'Confirmar'] as const;
             <input
               type="datetime-local"
               formControlName="disappearedAt"
+              [max]="maxDateTime"
               class="field-input"
             />
+            @if (form.controls.disappearedAt.errors?.['futureDate']) {
+              <span class="text-xs text-[var(--color-alert-strong)]">
+                La fecha no puede ser en el futuro.
+              </span>
+            }
           </label>
         }
 
@@ -173,12 +180,13 @@ export class ReportCreatePage {
    */
   protected readonly latitude = signal<number | null>(null);
   protected readonly longitude = signal<number | null>(null);
+  protected readonly maxDateTime = nowAsDatetimeLocal();
 
   protected readonly form = this.fb.nonNullable.group({
     petName: ['', [Validators.required, Validators.maxLength(80)]],
     species: ['DOG'],
     description: ['', [Validators.required, Validators.maxLength(2000)]],
-    disappearedAt: ['', [Validators.required]],
+    disappearedAt: ['', [Validators.required, notInFutureValidator()]],
     location: [EMPTY_LOCATION],
     imageKeys: this.fb.nonNullable.control<string[]>([]),
   });
@@ -198,7 +206,12 @@ export class ReportCreatePage {
     switch (this.step()) {
       case 0:
         return (
-          !!value.petName && value.petName.length <= 80 && !!value.description && value.description.length <= 2000 && !!value.disappearedAt
+          !!value.petName &&
+          value.petName.length <= 80 &&
+          !!value.description &&
+          value.description.length <= 2000 &&
+          !!value.disappearedAt &&
+          new Date(value.disappearedAt).getTime() <= Date.now()
         );
       case 1:
         return !!value.location.neighborhoodId && this.latitude() !== null && this.longitude() !== null;

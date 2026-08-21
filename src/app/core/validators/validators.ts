@@ -35,3 +35,20 @@ export function documentNumberValidator(): ValidatorFn {
     return /^\d{6,10}$/.test(value) ? null : { documentNumber: true };
   };
 }
+
+/** Rechaza fechas/horas futuras (ej. cuándo desapareció o se vio una mascota). */
+export function notInFutureValidator(): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const value = control.value as string | null;
+    if (!value) {
+      return null;
+    }
+    return new Date(value).getTime() > Date.now() ? { futureDate: true } : null;
+  };
+}
+
+/** "Ahora" en formato `datetime-local` (YYYY-MM-DDTHH:mm), para usar como atributo `max` del input. */
+export function nowAsDatetimeLocal(): string {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}

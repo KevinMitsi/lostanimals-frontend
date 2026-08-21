@@ -127,7 +127,10 @@ export class ConversationThreadPage {
       .subscribe({
         next: (page) => {
           if (page.items.length > 0) {
-            this.messages.update((list) => [...list, ...page.items]);
+            this.messages.update((list) => {
+              const existingIds = new Set(list.map((m) => m.id));
+              return [...list, ...page.items.filter((item) => !existingIds.has(item.id))];
+            });
           }
           if (page.nextAfter) {
             this.cursor = page.nextAfter;
