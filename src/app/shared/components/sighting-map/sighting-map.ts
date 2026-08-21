@@ -18,6 +18,7 @@ import { GeoCoordinates } from '../../../core/location/geolocation.service';
 import { SightingResponse } from '../../../core/models';
 
 const DEFAULT_CENTER: [number, number] = [-74.0721, 4.711];
+const CITY_NAVIGATION_RADIUS_KM = 35;
 
 @Component({
   selector: 'app-sighting-map',
@@ -35,6 +36,16 @@ const DEFAULT_CENTER: [number, number] = [-74.0721, 4.711];
         <p class="pointer-events-none absolute left-3 top-3 rounded-full bg-white/95 px-3 py-2 text-xs font-semibold shadow">
           Haz clic en el punto exacto del avistamiento
         </p>
+      }
+      @if (center() && !configurationError()) {
+        <button
+          type="button"
+          class="absolute bottom-8 left-3 z-10 min-h-11 rounded-full bg-white/95 px-4 py-2 text-xs font-semibold text-[var(--color-primary-strong)] shadow-md"
+          aria-label="Volver a centrar el mapa en mi ubicación"
+          (click)="recenterOnUser()"
+        >
+          📍 Mi ubicación
+        </button>
       }
     </div>
   `,
@@ -57,14 +68,19 @@ export class SightingMap implements OnDestroy {
   private readonly sightingMarkers: Marker[] = [];
   private userMarker: Marker | null = null;
   private selectionMarker: Marker | null = null;
+  private hasCenteredOnUser = false;
 
   constructor() {
     afterNextRender(() => this.initialize());
     effect(() => {
       const center = this.center();
       if (center && this.map) {
-        this.map.easeTo({ center: [center.longitude, center.latitude], zoom: 13, duration: 700 });
         this.renderUserMarker(center);
+        if (!this.hasCenteredOnUser) {
+          this.configureNavigationBounds(center);
+          this.recenterOnUser();
+          this.hasCenteredOnUser = true;
+        }
       }
     });
     effect(() => {
@@ -82,6 +98,12 @@ export class SightingMap implements OnDestroy {
     this.map = null;
   }
 
+  protected recenterOnUser(): void {
+    const center = this.center();
+    if (!center || !this.map) return;
+    this.map.easeTo({ center: [center.longitude, center.latitude], zoom: 13, duration: 700 });
+  }
+
   private initialize(): void {
     const token = this.runtimeConfig.mapboxPublicToken;
     if (!token.startsWith('pk.')) {
@@ -97,7 +119,13 @@ export class SightingMap implements OnDestroy {
       center: center ? [center.longitude, center.latitude] : DEFAULT_CENTER,
       zoom: center ? 13 : 5,
       attributionControl: true,
+      dragPan: true,
+      touchZoomRotate: true,
     });
+    if (center) {
+      this.configureNavigationBounds(center);
+      this.hasCenteredOnUser = true;
+    }
     this.map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
     this.map.on('click', ({ lngLat }) => {
       if (!this.selectable()) return;
@@ -108,6 +136,19 @@ export class SightingMap implements OnDestroy {
       this.renderSightings(this.sightings());
       this.renderSelection(this.selectedPoint());
     });
+  }
+
+  private configureNavigationBounds(center: GeoCoordinates): void {
+    if (!this.map) return;
+
+    const latitudeDelta = CITY_NAVIGATION_RADIUS_KM / 111.32;
+    const longitudeDelta = CITY_NAVIGATION_RADIUS_KM /
+      (111.32 * Math.max(Math.cos((center.latitude * Math.PI) / 180), 0.01));
+
+    this.map.setMaxBounds([
+      [center.longitude - longitudeDelta, center.latitude - latitudeDelta],
+      [center.longitude + longitudeDelta, center.latitude + latitudeDelta],
+    ]);
   }
 
   private renderSightings(sightings: readonly SightingResponse[]): void {
