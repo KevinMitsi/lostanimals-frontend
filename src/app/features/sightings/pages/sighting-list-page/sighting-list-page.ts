@@ -8,6 +8,7 @@ import {
   GeographyLocationValue,
 } from '../../../../shared/components/geography-cascade-selector/geography-cascade-selector';
 import { SightingCard } from '../../components/sighting-card/sighting-card';
+import { NearbySightingsMap } from '../../components/nearby-sightings-map/nearby-sightings-map';
 import { SightingService } from '../../sighting.service';
 
 const EMPTY_LOCATION: GeographyLocationValue = { departmentId: null, cityId: null, neighborhoodId: null };
@@ -16,7 +17,7 @@ const DEFAULT_RADIUS_METERS = 5000;
 @Component({
   selector: 'app-sighting-list-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, SightingCard, GeographyCascadeSelector],
+  imports: [ReactiveFormsModule, RouterLink, SightingCard, GeographyCascadeSelector, NearbySightingsMap],
   template: `
     <div class="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-6">
       <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Avistamientos</h1>
@@ -27,6 +28,8 @@ const DEFAULT_RADIUS_METERS = 5000;
         }
         <a routerLink="/sightings/new" class="btn btn-primary">+ Reportar</a>
       </div>
+
+      <app-nearby-sightings-map />
 
       <hr class="border-t border-[var(--color-surface)]" />
 

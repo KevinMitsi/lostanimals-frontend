@@ -66,6 +66,12 @@ body {
   font-weight: 600;
 }
 
+.sighting-map-popup strong {
+  padding: 0.75rem 0.75rem 0;
+  color: var(--color-primary-strong);
+  font-size: 0.875rem;
+}
+
 body {
   background: var(--color-background);
   color: var(--color-text);

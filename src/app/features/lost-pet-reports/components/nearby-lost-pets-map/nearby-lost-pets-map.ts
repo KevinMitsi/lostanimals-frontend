@@ -1,39 +1,48 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { GeoCoordinates, GeolocationService } from '../../../../core/location/geolocation.service';
-import { SightingResponse } from '../../../../core/models';
+import { LostPetReportResponse } from '../../../../core/models';
 import { SightingMap } from '../../../../shared/components/sighting-map/sighting-map';
-import { SightingService } from '../../sighting.service';
+import { LostPetReportService } from '../../lost-pet-report.service';
 
-const NEARBY_RADIUS_METERS = 50_000;
+const CITY_RADIUS_METERS = 50_000;
 const REFRESH_DISTANCE_METERS = 500;
 
 @Component({
-  selector: 'app-nearby-sightings-map',
+  selector: 'app-nearby-lost-pets-map',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SightingMap],
   template: `
-    <section class="flex flex-col gap-3" aria-labelledby="nearby-sightings-title">
+    <section class="flex flex-col gap-3" aria-labelledby="nearby-lost-pets-title">
       <div>
-        <h2 id="nearby-sightings-title" class="text-xl font-bold text-[var(--color-primary-strong)]">
-          Avistamientos cerca de ti
+        <h2 id="nearby-lost-pets-title" class="text-xl font-bold text-[var(--color-primary-strong)]">
+          Animales perdidos cerca de ti
         </h2>
         <p class="text-sm text-[var(--color-text)] opacity-75">
-          Explora avistamientos activos en la ciudad y sus alrededores.
+          Explora reportes activos en la ciudad y abre cada marcador para ver su información.
         </p>
       </div>
 
       @if (location.position(); as position) {
-        <app-sighting-map [center]="position" [sightings]="sightings()" />
+        <app-sighting-map
+          [center]="position"
+          [lostPetReports]="reports()"
+          ariaLabel="Mapa de animales perdidos cercanos"
+        />
         @if (loading()) {
-          <p class="text-xs text-[var(--color-text)]">Actualizando avistamientos cercanos…</p>
+          <p class="text-xs text-[var(--color-text)]">Actualizando animales perdidos cercanos…</p>
         }
       } @else {
         <div class="card-soft flex flex-col items-start gap-3">
           <p class="text-sm text-[var(--color-text)]">
-            {{ location.errorMessage() ?? 'Autoriza tu ubicación para enfocar el mapa en tu zona actual.' }}
+            {{ location.errorMessage() ?? 'Autoriza tu ubicación para mostrar animales perdidos en tu zona.' }}
           </p>
-          <button type="button" class="btn btn-primary" [disabled]="location.state() === 'requesting'" (click)="requestLocation()">
+          <button
+            type="button"
+            class="btn btn-primary"
+            [disabled]="location.state() === 'requesting'"
+            (click)="requestLocation()"
+          >
             {{ location.state() === 'requesting' ? 'Solicitando permiso…' : 'Permitir mi ubicación' }}
           </button>
         </div>
@@ -41,12 +50,12 @@ const REFRESH_DISTANCE_METERS = 500;
     </section>
   `,
 })
-export class NearbySightingsMap {
+export class NearbyLostPetsMap {
   protected readonly location = inject(GeolocationService);
-  private readonly sightingsService = inject(SightingService);
+  private readonly reportService = inject(LostPetReportService);
   private readonly destroyRef = inject(DestroyRef);
 
-  protected readonly sightings = signal<readonly SightingResponse[]>([]);
+  protected readonly reports = signal<readonly LostPetReportResponse[]>([]);
   protected readonly loading = signal(false);
   private lastSearchCenter: GeoCoordinates | null = null;
 
@@ -68,13 +77,18 @@ export class NearbySightingsMap {
   private loadNearby(position: GeoCoordinates): void {
     this.lastSearchCenter = position;
     this.loading.set(true);
-    this.sightingsService
-      .search({ status: 'ACTIVE', latitude: position.latitude, longitude: position.longitude,
-        radiusMeters: NEARBY_RADIUS_METERS, limit: 50 })
+    this.reportService
+      .search({
+        status: 'LOST',
+        latitude: position.latitude,
+        longitude: position.longitude,
+        radiusMeters: CITY_RADIUS_METERS,
+        limit: 50,
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: ({ items }) => {
-          this.sightings.set(items);
+          this.reports.set(items);
           this.loading.set(false);
         },
         error: () => this.loading.set(false),
@@ -82,7 +96,7 @@ export class NearbySightingsMap {
   }
 }
 
-export function distanceMeters(from: GeoCoordinates, to: GeoCoordinates): number {
+function distanceMeters(from: GeoCoordinates, to: GeoCoordinates): number {
   const earthRadius = 6_371_000;
   const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
   const latitudeDelta = toRadians(to.latitude - from.latitude);
