@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AppApiError } from '../../../../core/http/problem-detail.util';
 import { EditSightingRequest, SightingResponse } from '../../../../core/models';
 import { ImageUploadService } from '../../../../core/upload/image-upload.service';
+import { notInFutureValidator, nowAsDatetimeLocal } from '../../../../core/validators/validators';
 import {
   GeographyCascadeSelector,
   GeographyLocationValue,
@@ -44,7 +45,12 @@ import { SightingService } from '../../sighting.service';
 
           <label class="field-label">
             Fecha y hora en que lo viste
-            <input type="datetime-local" formControlName="observedAt" class="field-input" />
+            <input type="datetime-local" formControlName="observedAt" [max]="maxDateTime" class="field-input" />
+            @if (form.controls.observedAt.errors?.['futureDate']) {
+              <span class="text-xs text-[var(--color-alert-strong)]">
+                La fecha no puede ser en el futuro.
+              </span>
+            }
           </label>
 
           <div class="flex flex-col gap-1">
@@ -125,11 +131,12 @@ export class SightingEditPage {
   protected readonly formError = signal<string | null>(null);
   protected readonly conflict = signal(false);
   protected readonly imageError = signal<string | null>(null);
+  protected readonly maxDateTime = nowAsDatetimeLocal();
 
   protected readonly form = this.fb.nonNullable.group({
     species: ['DOG'],
     description: ['', [Validators.required, Validators.maxLength(2000)]],
-    observedAt: ['', [Validators.required]],
+    observedAt: ['', [Validators.required, notInFutureValidator()]],
     location: this.fb.nonNullable.control<GeographyLocationValue>({
       departmentId: null,
       cityId: null,

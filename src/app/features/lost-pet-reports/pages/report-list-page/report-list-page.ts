@@ -23,7 +23,7 @@ const DEFAULT_RADIUS_METERS = 5000;
       <div class="flex items-center justify-between gap-2">
         <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Mascotas perdidas</h1>
         @if (session.isAuthenticated()) {
-          <a routerLink="/lost-pet-reports/mine" class="btn-link">
+          <a routerLink="/lost-pet-reports/mine" class="btn btn-ghost">
             Mis reportes
           </a>
         }

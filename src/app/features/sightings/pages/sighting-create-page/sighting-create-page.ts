@@ -11,6 +11,7 @@ import {
 import { ImagePicker } from '../../../../shared/components/image-picker/image-picker';
 import { SightingMap } from '../../../../shared/components/sighting-map/sighting-map';
 import { GeoCoordinates, GeolocationService } from '../../../../core/location/geolocation.service';
+import { notInFutureValidator, nowAsDatetimeLocal } from '../../../../core/validators/validators';
 import { SightingService } from '../../sighting.service';
 
 const EMPTY_LOCATION: GeographyLocationValue = { departmentId: null, cityId: null, neighborhoodId: null };
@@ -93,7 +94,12 @@ const STEP_LABELS = ['Datos', 'Ubicación', 'Imágenes', 'Confirmar'] as const;
 
             <label class="field-label">
               Fecha y hora en que lo viste
-              <input type="datetime-local" formControlName="observedAt" class="field-input" />
+              <input type="datetime-local" formControlName="observedAt" [max]="maxDateTime" class="field-input" />
+              @if (form.controls.observedAt.errors?.['futureDate']) {
+                <span class="text-xs text-[var(--color-alert-strong)]">
+                  La fecha no puede ser en el futuro.
+                </span>
+              }
             </label>
           }
 
@@ -180,11 +186,12 @@ export class SightingCreatePage {
   protected readonly latitude = signal<number | null>(null);
   protected readonly longitude = signal<number | null>(null);
   protected readonly selectedPoint = signal<GeoCoordinates | null>(null);
+  protected readonly maxDateTime = nowAsDatetimeLocal();
 
   protected readonly form = this.fb.nonNullable.group({
     species: ['DOG'],
     description: ['', [Validators.required, Validators.maxLength(2000)]],
-    observedAt: ['', [Validators.required]],
+    observedAt: ['', [Validators.required, notInFutureValidator()]],
     location: [EMPTY_LOCATION],
     imageKeys: this.fb.nonNullable.control<string[]>([]),
   });
@@ -213,7 +220,12 @@ export class SightingCreatePage {
     const value = this.form.getRawValue();
     switch (this.step()) {
       case 0:
-        return !!value.description && value.description.length <= 2000 && !!value.observedAt;
+        return (
+          !!value.description &&
+          value.description.length <= 2000 &&
+          !!value.observedAt &&
+          new Date(value.observedAt).getTime() <= Date.now()
+        );
       case 1:
         return !!value.location.neighborhoodId && this.latitude() !== null && this.longitude() !== null;
       case 2:

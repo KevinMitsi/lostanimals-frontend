@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AppApiError } from '../../../../core/http/problem-detail.util';
 import { EditLostPetReportRequest, LostPetReportResponse } from '../../../../core/models';
 import { ImageUploadService } from '../../../../core/upload/image-upload.service';
+import { notInFutureValidator, nowAsDatetimeLocal } from '../../../../core/validators/validators';
 import {
   GeographyCascadeSelector,
   GeographyLocationValue,
@@ -60,8 +61,14 @@ import { LostPetReportService } from '../../lost-pet-report.service';
             <input
               type="datetime-local"
               formControlName="disappearedAt"
+              [max]="maxDateTime"
               class="field-input"
             />
+            @if (form.controls.disappearedAt.errors?.['futureDate']) {
+              <span class="text-xs text-[var(--color-alert-strong)]">
+                La fecha no puede ser en el futuro.
+              </span>
+            }
           </label>
 
           <div class="flex flex-col gap-1">
@@ -150,12 +157,13 @@ export class ReportEditPage {
   protected readonly formError = signal<string | null>(null);
   protected readonly conflict = signal(false);
   protected readonly imageError = signal<string | null>(null);
+  protected readonly maxDateTime = nowAsDatetimeLocal();
 
   protected readonly form = this.fb.nonNullable.group({
     petName: ['', [Validators.required, Validators.maxLength(80)]],
     species: ['DOG'],
     description: ['', [Validators.required, Validators.maxLength(2000)]],
-    disappearedAt: ['', [Validators.required]],
+    disappearedAt: ['', [Validators.required, notInFutureValidator()]],
     location: this.fb.nonNullable.control<GeographyLocationValue>({
       departmentId: null,
       cityId: null,
