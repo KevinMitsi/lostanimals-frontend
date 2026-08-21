@@ -53,14 +53,28 @@ interface PickerItem {
         }
 
         @if (items().length < max()) {
+          @if (allowCamera()) {
+            <label
+              class="flex h-24 w-24 min-h-[44px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--color-surface)] text-xs text-[var(--color-text)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary-strong)]"
+            >
+              📷 Tomar foto
+              <input
+                type="file"
+                accept="image/jpeg,image/png"
+                capture="environment"
+                class="hidden"
+                (change)="onFilesSelected($any($event.target).files)"
+              />
+            </label>
+          }
           <label
             class="flex h-24 w-24 min-h-[44px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--color-surface)] text-xs text-[var(--color-text)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary-strong)]"
           >
-            + Foto
+            {{ allowCamera() ? '🖼️ Galería' : '+ Foto' }}
             <input
               type="file"
               accept="image/jpeg,image/png"
-              capture="environment"
+              [attr.capture]="allowCamera() ? null : 'environment'"
               multiple
               class="hidden"
               (change)="onFilesSelected($any($event.target).files)"
@@ -79,6 +93,7 @@ export class ImagePicker implements ControlValueAccessor {
   readonly resourceBasePath = input.required<string>();
   readonly min = input(1);
   readonly max = input(5);
+  readonly allowCamera = input(false);
 
   private readonly uploadService = inject(ImageUploadService);
 

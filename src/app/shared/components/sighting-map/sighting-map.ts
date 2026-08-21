@@ -32,10 +32,21 @@ const CITY_NAVIGATION_RADIUS_KM = 35;
           <p class="max-w-md text-sm text-[var(--color-alert-strong)]">{{ configurationError() }}</p>
         </div>
       }
-      @if (selectable()) {
+      @if (selectable() && !configurationError()) {
         <p class="pointer-events-none absolute left-3 top-3 rounded-full bg-white/95 px-3 py-2 text-xs font-semibold shadow">
-          Haz clic en el punto exacto del avistamiento
+          Desplaza el mapa para ubicar el pin en el punto exacto
         </p>
+        <svg
+          width="36"
+          height="48"
+          viewBox="0 0 24 32"
+          fill="var(--color-primary-strong)"
+          class="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-full drop-shadow-lg"
+          aria-hidden="true"
+        >
+          <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 20 12 20s12-11 12-20c0-6.627-5.373-12-12-12z" />
+          <circle cx="12" cy="12" r="5" fill="white" />
+        </svg>
       }
       @if (center() && !configurationError()) {
         <button
@@ -68,8 +79,8 @@ export class SightingMap implements OnDestroy {
   private map: MapboxMap | null = null;
   private readonly sightingMarkers: Marker[] = [];
   private userMarker: Marker | null = null;
-  private selectionMarker: Marker | null = null;
   private hasCenteredOnUser = false;
+  private enlargedMarkerEl: HTMLElement | null = null;
 
   constructor() {
     afterNextRender(() => this.initialize());
@@ -88,10 +99,6 @@ export class SightingMap implements OnDestroy {
       const sightings = this.sightings();
       const lostPetReports = this.lostPetReports();
       if (this.map) this.renderAnimals(sightings, lostPetReports);
-    });
-    effect(() => {
-      const point = this.selectedPoint();
-      if (this.map) this.renderSelection(point);
     });
   }
 
@@ -115,11 +122,12 @@ export class SightingMap implements OnDestroy {
 
     mapboxgl.accessToken = token;
     const center = this.center();
+    const initialPoint = this.selectedPoint() ?? center;
     this.map = new MapboxMap({
       container: this.container().nativeElement,
       style: 'mapbox://styles/mapbox/streets-v12',
-      center: center ? [center.longitude, center.latitude] : DEFAULT_CENTER,
-      zoom: center ? 13 : 5,
+      center: initialPoint ? [initialPoint.longitude, initialPoint.latitude] : DEFAULT_CENTER,
+      zoom: initialPoint ? 13 : 5,
       attributionControl: true,
       dragPan: true,
       touchZoomRotate: true,
@@ -129,14 +137,19 @@ export class SightingMap implements OnDestroy {
       this.hasCenteredOnUser = true;
     }
     this.map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
-    this.map.on('click', ({ lngLat }) => {
-      if (!this.selectable()) return;
-      this.pointSelected.emit({ latitude: lngLat.lat, longitude: lngLat.lng });
+    this.map.on('moveend', () => {
+      if (!this.selectable() || !this.map) return;
+      const mapCenter = this.map.getCenter();
+      this.pointSelected.emit({ latitude: mapCenter.lat, longitude: mapCenter.lng });
     });
+    this.map.on('click', () => this.collapseEnlargedMarker());
     this.map.on('load', () => {
       if (center) this.renderUserMarker(center);
       this.renderAnimals(this.sightings(), this.lostPetReports());
-      this.renderSelection(this.selectedPoint());
+      if (this.selectable() && this.map) {
+        const mapCenter = this.map.getCenter();
+        this.pointSelected.emit({ latitude: mapCenter.lat, longitude: mapCenter.lng });
+      }
     });
   }
 
@@ -158,6 +171,7 @@ export class SightingMap implements OnDestroy {
     lostPetReports: readonly LostPetReportResponse[],
   ): void {
     this.sightingMarkers.splice(0).forEach((marker) => marker.remove());
+    this.enlargedMarkerEl = null;
 
     const mapItems: MapAnimalItem[] = [
       ...lostPetReports.map((report) => ({
@@ -166,8 +180,6 @@ export class SightingMap implements OnDestroy {
         longitude: report.longitude,
         title: report.petName,
         imageUrl: (report.images.find(({ primary }) => primary) ?? report.images[0])?.url,
-        date: report.disappearedAt,
-        dateLabel: 'Desapareció',
         detailPath: ['/lost-pet-reports', report.id],
         markerColor: '#9c5a3c',
       })),
@@ -177,43 +189,69 @@ export class SightingMap implements OnDestroy {
         longitude: sighting.longitude,
         title: 'Animal avistado',
         imageUrl: (sighting.images.find(({ primary }) => primary) ?? sighting.images[0])?.url,
-        date: sighting.observedAt,
-        dateLabel: 'Visto',
         detailPath: ['/sightings', sighting.id],
         markerColor: '#5f7360',
       })),
     ];
 
     mapItems.forEach((item) => {
-      const popupContent = document.createElement('button');
-      popupContent.type = 'button';
-      popupContent.className = 'sighting-map-popup';
-      popupContent.setAttribute('aria-label', `Ver detalle de ${item.title}`);
+      const root = document.createElement('div');
+      root.className = 'animal-map-marker';
+      root.style.setProperty('--marker-color', item.markerColor);
+      root.setAttribute('role', 'button');
+      root.setAttribute('aria-label', `Ver foto de ${item.title}`);
 
+      let photo: HTMLElement;
       if (item.imageUrl) {
         const image = document.createElement('img');
         image.alt = `Foto de ${item.title}`;
         image.src = item.imageUrl;
         image.loading = 'lazy';
-        popupContent.append(image);
+        photo = image;
+      } else {
+        const fallback = document.createElement('div');
+        fallback.textContent = '🐾';
+        fallback.className = 'animal-map-marker-photo--fallback';
+        photo = fallback;
       }
+      photo.classList.add('animal-map-marker-photo');
+      root.append(photo);
 
-      const title = document.createElement('strong');
-      title.textContent = item.title;
-      popupContent.append(title);
+      const viewButton = document.createElement('button');
+      viewButton.type = 'button';
+      viewButton.className = 'animal-map-marker-view-btn';
+      viewButton.textContent = 'Ver publicación';
+      root.append(viewButton);
 
-      const date = document.createElement('span');
-      date.textContent = `${item.dateLabel} ${new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium' }).format(new Date(item.date))}`;
-      popupContent.append(date);
-      popupContent.addEventListener('click', () => void this.router.navigate(item.detailPath));
+      root.addEventListener('click', (event) => {
+        event.stopPropagation();
+        this.toggleEnlargedMarker(root);
+      });
+      viewButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        void this.router.navigate(item.detailPath);
+      });
 
-      const popup = new mapboxgl.Popup({ offset: 18, closeButton: true }).setDOMContent(popupContent);
-      const marker = new mapboxgl.Marker({ color: item.markerColor })
+      const marker = new mapboxgl.Marker({ element: root, anchor: 'center' })
         .setLngLat([item.longitude, item.latitude])
-        .setPopup(popup)
         .addTo(this.map!);
       this.sightingMarkers.push(marker);
     });
+  }
+
+  private toggleEnlargedMarker(root: HTMLElement): void {
+    const wasEnlarged = root === this.enlargedMarkerEl;
+    if (this.enlargedMarkerEl && this.enlargedMarkerEl !== root) {
+      this.enlargedMarkerEl.classList.remove('is-enlarged');
+    }
+    root.classList.toggle('is-enlarged', !wasEnlarged);
+    this.enlargedMarkerEl = wasEnlarged ? null : root;
+  }
+
+  private collapseEnlargedMarker(): void {
+    if (!this.enlargedMarkerEl) return;
+    this.enlargedMarkerEl.classList.remove('is-enlarged');
+    this.enlargedMarkerEl = null;
   }
 
   private renderUserMarker(center: GeoCoordinates): void {
@@ -223,19 +261,6 @@ export class SightingMap implements OnDestroy {
       .setPopup(new mapboxgl.Popup({ offset: 16 }).setText('Tu ubicación actual'))
       .addTo(this.map!);
   }
-
-  private renderSelection(point: GeoCoordinates | null): void {
-    this.selectionMarker?.remove();
-    this.selectionMarker = null;
-    if (!point) return;
-    this.selectionMarker = new mapboxgl.Marker({ color: '#5f7360', draggable: true })
-      .setLngLat([point.longitude, point.latitude])
-      .addTo(this.map!);
-    this.selectionMarker.on('dragend', () => {
-      const lngLat = this.selectionMarker!.getLngLat();
-      this.pointSelected.emit({ latitude: lngLat.lat, longitude: lngLat.lng });
-    });
-  }
 }
 
 interface MapAnimalItem {
@@ -244,8 +269,6 @@ interface MapAnimalItem {
   readonly longitude: number;
   readonly title: string;
   readonly imageUrl?: string;
-  readonly date: string;
-  readonly dateLabel: string;
   readonly detailPath: string[];
   readonly markerColor: string;
 }

@@ -1,8 +1,9 @@
 import { DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AppApiError } from '../../../../core/http/problem-detail.util';
+import { GeoCoordinates, GeolocationService } from '../../../../core/location/geolocation.service';
 import { CreateLostPetReportRequest } from '../../../../core/models';
 import { notInFutureValidator, nowAsDatetimeLocal } from '../../../../core/validators/validators';
 import {
@@ -10,6 +11,7 @@ import {
   GeographyLocationValue,
 } from '../../../../shared/components/geography-cascade-selector/geography-cascade-selector';
 import { ImagePicker } from '../../../../shared/components/image-picker/image-picker';
+import { SightingMap } from '../../../../shared/components/sighting-map/sighting-map';
 import { LostPetReportService } from '../../lost-pet-report.service';
 
 const EMPTY_LOCATION: GeographyLocationValue = { departmentId: null, cityId: null, neighborhoodId: null };
@@ -18,7 +20,7 @@ const STEP_LABELS = ['Datos', 'Ubicación', 'Imágenes', 'Confirmar'] as const;
 @Component({
   selector: 'app-report-create-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, GeographyCascadeSelector, ImagePicker, DecimalPipe],
+  imports: [ReactiveFormsModule, GeographyCascadeSelector, ImagePicker, SightingMap, DecimalPipe],
   template: `
     <div class="mx-auto flex max-w-xl flex-col gap-5 px-4 py-6">
       <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Reportar mascota perdida</h1>
@@ -101,13 +103,13 @@ const STEP_LABELS = ['Datos', 'Ubicación', 'Imágenes', 'Confirmar'] as const;
         @if (step() === 1) {
           <app-geography-cascade-selector formControlName="location" />
 
-          <button
-            type="button"
-            (click)="useMyLocation()"
-            class="btn btn-primary"
-          >
-            📍 Usar mi ubicación
-          </button>
+          <app-sighting-map
+            [center]="location.position()"
+            [selectable]="true"
+            [selectedPoint]="selectedPoint()"
+            ariaLabel="Mapa para elegir la ubicación exacta donde se perdió"
+            (pointSelected)="selectPoint($event)"
+          />
 
           @if (latitude() !== null && longitude() !== null) {
             <p class="text-xs text-[var(--color-text)]">
@@ -166,6 +168,8 @@ export class ReportCreatePage {
   private readonly fb = inject(FormBuilder);
   private readonly reportService = inject(LostPetReportService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
+  protected readonly location = inject(GeolocationService);
 
   protected readonly resourceBasePath = this.reportService.basePath;
   protected readonly stepLabels = STEP_LABELS;
@@ -174,12 +178,13 @@ export class ReportCreatePage {
   protected readonly formError = signal<string | null>(null);
 
   /**
-   * Signals, no FormControls: el callback de getCurrentPosition corre fuera del ciclo
+   * Signals, no FormControls: el callback de geolocalización corre fuera del ciclo
    * normal de eventos de plantilla, y con OnPush un patchValue() ahí no siempre repinta
    * (depende de que zone.js parchee la API). Las signals sí notifican el repintado siempre.
    */
   protected readonly latitude = signal<number | null>(null);
   protected readonly longitude = signal<number | null>(null);
+  protected readonly selectedPoint = signal<GeoCoordinates | null>(null);
   protected readonly maxDateTime = nowAsDatetimeLocal();
 
   protected readonly form = this.fb.nonNullable.group({
@@ -191,14 +196,18 @@ export class ReportCreatePage {
     imageKeys: this.fb.nonNullable.control<string[]>([]),
   });
 
-  protected useMyLocation(): void {
-    if (!navigator.geolocation) {
-      return;
-    }
-    navigator.geolocation.getCurrentPosition((position) => {
-      this.latitude.set(position.coords.latitude);
-      this.longitude.set(position.coords.longitude);
+  constructor() {
+    effect(() => {
+      const position = this.location.position();
+      if (position && this.selectedPoint() === null) this.selectPoint(position);
     });
+    this.destroyRef.onDestroy(() => this.location.stopWatching());
+  }
+
+  protected selectPoint(point: GeoCoordinates): void {
+    this.selectedPoint.set(point);
+    this.latitude.set(point.latitude);
+    this.longitude.set(point.longitude);
   }
 
   protected canAdvance(): boolean {
@@ -229,6 +238,7 @@ export class ReportCreatePage {
   protected nextStep(): void {
     if (this.canAdvance()) {
       this.step.update((s) => Math.min(s + 1, 3));
+      if (this.step() === 1) this.location.startWatching();
     }
   }
 
