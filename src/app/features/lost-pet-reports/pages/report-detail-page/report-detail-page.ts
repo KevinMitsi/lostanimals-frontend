@@ -1,7 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { SessionStore } from '../../../../core/auth/session.store';
 import { REPORT_STATUS_LABELS, SPECIES_LABELS } from '../../../../core/labels/labels';
 import { LostPetReportResponse } from '../../../../core/models';
 import { ContactRequestButton } from '../../../../shared/components/contact-request-button/contact-request-button';
@@ -39,9 +38,7 @@ import { LostPetReportService } from '../../lost-pet-report.service';
           <app-neighborhood-label [neighborhoodId]="report.neighborhoodId" />
         </p>
 
-        @if (session.isAuthenticated()) {
-          <app-contact-request-button publicationType="LOST_PET_REPORT" [publicationId]="report.id" />
-        }
+        <app-contact-request-button publicationType="LOST_PET_REPORT" [publicationId]="report.id" />
 
         <p class="text-xs text-[var(--color-text)] opacity-60">
           ¿Es tu publicación? Gestiónala desde
@@ -62,7 +59,6 @@ import { LostPetReportService } from '../../lost-pet-report.service';
 export class ReportDetailPage {
   private readonly route = inject(ActivatedRoute);
   private readonly reportService = inject(LostPetReportService);
-  protected readonly session = inject(SessionStore);
 
   protected readonly statusLabels = REPORT_STATUS_LABELS;
   protected readonly speciesLabels = SPECIES_LABELS;

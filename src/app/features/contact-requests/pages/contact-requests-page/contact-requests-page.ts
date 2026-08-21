@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import {
@@ -8,6 +8,7 @@ import {
 } from '../../../../core/labels/labels';
 import { AppApiError } from '../../../../core/http/problem-detail.util';
 import { ContactRequestResponse } from '../../../../core/models';
+import { SafetyWarningModal } from '../../../../shared/components/safety-warning-modal/safety-warning-modal';
 import { ContactRequestService } from '../../contact-request.service';
 
 type Tab = 'received' | 'sent';
@@ -15,7 +16,7 @@ type Tab = 'received' | 'sent';
 @Component({
   selector: 'app-contact-requests-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe],
+  imports: [DatePipe, SafetyWarningModal],
   template: `
     <div class="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6">
       <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Solicitudes de contacto</h1>
@@ -98,11 +99,15 @@ type Tab = 'received' | 'sent';
         }
       </div>
     </div>
+
+    <app-safety-warning-modal (confirmed)="goToAcceptedConversation()" />
   `,
 })
 export class ContactRequestsPage {
   private readonly contactRequestService = inject(ContactRequestService);
   private readonly router = inject(Router);
+  private readonly safetyModal = viewChild.required(SafetyWarningModal);
+  private acceptedConversationId: string | null = null;
 
   protected readonly statusLabels = CONTACT_REQUEST_STATUS_LABELS;
   protected readonly publicationTypeLabels = PUBLICATION_TYPE_LABELS;
@@ -132,13 +137,20 @@ export class ContactRequestsPage {
     this.contactRequestService.accept(item.id).subscribe({
       next: (response) => {
         this.pendingId.set(null);
-        this.router.navigate(['/conversations', response.id]);
+        this.acceptedConversationId = response.id;
+        this.safetyModal().open();
       },
       error: (error: AppApiError) => {
         this.pendingId.set(null);
         this.formError.set(error.detail);
       },
     });
+  }
+
+  protected goToAcceptedConversation(): void {
+    if (this.acceptedConversationId) {
+      this.router.navigate(['/conversations', this.acceptedConversationId]);
+    }
   }
 
   protected reject(item: ContactRequestResponse): void {

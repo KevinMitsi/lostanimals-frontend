@@ -9,6 +9,7 @@ import { SessionStore } from '../../../../core/auth/session.store';
 import { AppApiError } from '../../../../core/http/problem-detail.util';
 import { NotificationService } from '../../../../core/notifications/notification.service';
 import { ConversationResponse, MessageResponse } from '../../../../core/models';
+import { containsPhoneNumber } from '../../../../core/validators/validators';
 import { ConversationService } from '../../conversation.service';
 
 const POLL_INTERVAL_MS = 6000;
@@ -156,9 +157,16 @@ export class ConversationThreadPage {
     if (this.messageForm.invalid) {
       return;
     }
+    const text = this.messageForm.getRawValue().content;
+
+    if (containsPhoneNumber(text)) {
+      this.formError.set('Por seguridad, no es posible enviar números de teléfono por este medio.');
+      this.messageForm.reset({ content: '' });
+      return;
+    }
+
     this.formError.set(null);
     this.sending.set(true);
-    const text = this.messageForm.getRawValue().content;
 
     this.conversationService.sendMessage(this.conversationId, { content: text }).subscribe({
       next: (response) => {
