@@ -118,8 +118,6 @@ const STEP_LABELS = ['Datos', 'Ubicación', 'Imágenes', 'Confirmar'] as const;
               (pointSelected)="selectPoint($event)"
             />
 
-            <button type="button" (click)="useMyLocation()" class="btn btn-primary">📍 Usar mi ubicación</button>
-
             @if (latitude() !== null && longitude() !== null) {
               <p class="text-xs text-[var(--color-text)]">
                 Ubicación capturada ({{ latitude() | number: '1.4-4' }},
@@ -129,7 +127,7 @@ const STEP_LABELS = ['Datos', 'Ubicación', 'Imágenes', 'Confirmar'] as const;
           }
 
           @if (step() === 2) {
-            <app-image-picker [resourceBasePath]="resourceBasePath" formControlName="imageKeys" />
+            <app-image-picker [resourceBasePath]="resourceBasePath" [allowCamera]="true" formControlName="imageKeys" />
           }
 
           @if (step() === 3) {
@@ -202,12 +200,6 @@ export class SightingCreatePage {
       if (position && this.selectedPoint() === null) this.selectPoint(position);
     });
     this.destroyRef.onDestroy(() => this.location.stopWatching());
-  }
-
-  protected useMyLocation(): void {
-    const position = this.location.position();
-    if (position) this.selectPoint(position);
-    this.location.startWatching();
   }
 
   protected selectPoint(point: GeoCoordinates): void {
