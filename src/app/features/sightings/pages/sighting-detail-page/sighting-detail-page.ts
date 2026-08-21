@@ -1,7 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { SessionStore } from '../../../../core/auth/session.store';
 import { SIGHTING_STATUS_LABELS, SPECIES_LABELS } from '../../../../core/labels/labels';
 import { SightingResponse } from '../../../../core/models';
 import { ContactRequestButton } from '../../../../shared/components/contact-request-button/contact-request-button';
@@ -42,9 +41,7 @@ import { SightingService } from '../../sighting.service';
           <app-neighborhood-label [neighborhoodId]="sighting.neighborhoodId" />
         </p>
 
-        @if (session.isAuthenticated()) {
-          <app-contact-request-button publicationType="SIGHTING" [publicationId]="sighting.id" />
-        }
+        <app-contact-request-button publicationType="SIGHTING" [publicationId]="sighting.id" />
 
         <p class="text-xs text-[var(--color-text)] opacity-60">
           ¿Es tu publicación? Gestiónala desde
@@ -63,7 +60,6 @@ import { SightingService } from '../../sighting.service';
 export class SightingDetailPage {
   private readonly route = inject(ActivatedRoute);
   private readonly sightingService = inject(SightingService);
-  protected readonly session = inject(SessionStore);
 
   protected readonly statusLabels = SIGHTING_STATUS_LABELS;
   protected readonly speciesLabels = SPECIES_LABELS;

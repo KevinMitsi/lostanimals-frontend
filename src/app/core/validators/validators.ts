@@ -52,3 +52,11 @@ export function nowAsDatetimeLocal(): string {
   const now = new Date();
   return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
+
+/** 7+ dígitos consecutivos, permitiendo separadores típicos (espacio, guion, punto, paréntesis). */
+const PHONE_LIKE_PATTERN = /(?:\d[\s.\-()]{0,2}){7,}\d/;
+
+/** true si el texto trae algo que parece un número de teléfono (mensajes de chat no deben incluir contacto directo). */
+export function containsPhoneNumber(value: string): boolean {
+  return PHONE_LIKE_PATTERN.test(value);
+}
