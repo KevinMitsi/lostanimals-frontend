@@ -9,7 +9,7 @@ import {
 } from '../../../../shared/components/geography-cascade-selector/geography-cascade-selector';
 import { ReportCard } from '../../components/report-card/report-card';
 import { LostPetReportService } from '../../lost-pet-report.service';
-import { NearbySightingsMap } from '../../../sightings/components/nearby-sightings-map/nearby-sightings-map';
+import { NearbyLostPetsMap } from '../../components/nearby-lost-pets-map/nearby-lost-pets-map';
 
 const EMPTY_LOCATION: GeographyLocationValue = { departmentId: null, cityId: null, neighborhoodId: null };
 const DEFAULT_RADIUS_METERS = 5000;
@@ -17,7 +17,7 @@ const DEFAULT_RADIUS_METERS = 5000;
 @Component({
   selector: 'app-report-list-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, ReportCard, GeographyCascadeSelector, NearbySightingsMap],
+  imports: [ReactiveFormsModule, RouterLink, ReportCard, GeographyCascadeSelector, NearbyLostPetsMap],
   template: `
     <div class="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-6">
       <div class="flex items-center justify-between gap-2">
@@ -29,7 +29,7 @@ const DEFAULT_RADIUS_METERS = 5000;
         }
       </div>
 
-      <app-nearby-sightings-map />
+      <app-nearby-lost-pets-map />
 
       <button
         type="button"

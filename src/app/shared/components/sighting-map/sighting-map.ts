@@ -15,7 +15,7 @@ import { Router } from '@angular/router';
 import mapboxgl, { Map as MapboxMap, Marker } from 'mapbox-gl';
 import { RUNTIME_CONFIG } from '../../../core/config/runtime-config';
 import { GeoCoordinates } from '../../../core/location/geolocation.service';
-import { SightingResponse } from '../../../core/models';
+import { LostPetReportResponse, SightingResponse } from '../../../core/models';
 
 const DEFAULT_CENTER: [number, number] = [-74.0721, 4.711];
 const CITY_NAVIGATION_RADIUS_KM = 35;
@@ -57,6 +57,7 @@ export class SightingMap implements OnDestroy {
 
   readonly center = input<GeoCoordinates | null>(null);
   readonly sightings = input<readonly SightingResponse[]>([]);
+  readonly lostPetReports = input<readonly LostPetReportResponse[]>([]);
   readonly selectable = input(false);
   readonly selectedPoint = input<GeoCoordinates | null>(null);
   readonly ariaLabel = input('Mapa de avistamientos cercanos');
@@ -85,7 +86,8 @@ export class SightingMap implements OnDestroy {
     });
     effect(() => {
       const sightings = this.sightings();
-      if (this.map) this.renderSightings(sightings);
+      const lostPetReports = this.lostPetReports();
+      if (this.map) this.renderAnimals(sightings, lostPetReports);
     });
     effect(() => {
       const point = this.selectedPoint();
@@ -133,7 +135,7 @@ export class SightingMap implements OnDestroy {
     });
     this.map.on('load', () => {
       if (center) this.renderUserMarker(center);
-      this.renderSightings(this.sightings());
+      this.renderAnimals(this.sightings(), this.lostPetReports());
       this.renderSelection(this.selectedPoint());
     });
   }
@@ -151,28 +153,63 @@ export class SightingMap implements OnDestroy {
     ]);
   }
 
-  private renderSightings(sightings: readonly SightingResponse[]): void {
+  private renderAnimals(
+    sightings: readonly SightingResponse[],
+    lostPetReports: readonly LostPetReportResponse[],
+  ): void {
     this.sightingMarkers.splice(0).forEach((marker) => marker.remove());
-    sightings.forEach((sighting) => {
+
+    const mapItems: MapAnimalItem[] = [
+      ...lostPetReports.map((report) => ({
+        id: report.id,
+        latitude: report.latitude,
+        longitude: report.longitude,
+        title: report.petName,
+        imageUrl: (report.images.find(({ primary }) => primary) ?? report.images[0])?.url,
+        date: report.disappearedAt,
+        dateLabel: 'Desapareció',
+        detailPath: ['/lost-pet-reports', report.id],
+        markerColor: '#9c5a3c',
+      })),
+      ...sightings.map((sighting) => ({
+        id: sighting.id,
+        latitude: sighting.latitude,
+        longitude: sighting.longitude,
+        title: 'Animal avistado',
+        imageUrl: (sighting.images.find(({ primary }) => primary) ?? sighting.images[0])?.url,
+        date: sighting.observedAt,
+        dateLabel: 'Visto',
+        detailPath: ['/sightings', sighting.id],
+        markerColor: '#5f7360',
+      })),
+    ];
+
+    mapItems.forEach((item) => {
       const popupContent = document.createElement('button');
       popupContent.type = 'button';
       popupContent.className = 'sighting-map-popup';
-      popupContent.setAttribute('aria-label', `Ver detalle del avistamiento creado el ${sighting.createdAt}`);
+      popupContent.setAttribute('aria-label', `Ver detalle de ${item.title}`);
 
-      const image = document.createElement('img');
-      image.alt = 'Foto del animal avistado';
-      image.src = (sighting.images.find(({ primary }) => primary) ?? sighting.images[0])?.url ?? '';
-      image.loading = 'lazy';
-      popupContent.append(image);
+      if (item.imageUrl) {
+        const image = document.createElement('img');
+        image.alt = `Foto de ${item.title}`;
+        image.src = item.imageUrl;
+        image.loading = 'lazy';
+        popupContent.append(image);
+      }
+
+      const title = document.createElement('strong');
+      title.textContent = item.title;
+      popupContent.append(title);
 
       const date = document.createElement('span');
-      date.textContent = `Publicado ${new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium' }).format(new Date(sighting.createdAt))}`;
+      date.textContent = `${item.dateLabel} ${new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium' }).format(new Date(item.date))}`;
       popupContent.append(date);
-      popupContent.addEventListener('click', () => void this.router.navigate(['/sightings', sighting.id]));
+      popupContent.addEventListener('click', () => void this.router.navigate(item.detailPath));
 
       const popup = new mapboxgl.Popup({ offset: 18, closeButton: true }).setDOMContent(popupContent);
-      const marker = new mapboxgl.Marker({ color: '#9c5a3c' })
-        .setLngLat([sighting.longitude, sighting.latitude])
+      const marker = new mapboxgl.Marker({ color: item.markerColor })
+        .setLngLat([item.longitude, item.latitude])
         .setPopup(popup)
         .addTo(this.map!);
       this.sightingMarkers.push(marker);
@@ -199,4 +236,16 @@ export class SightingMap implements OnDestroy {
       this.pointSelected.emit({ latitude: lngLat.lat, longitude: lngLat.lng });
     });
   }
+}
+
+interface MapAnimalItem {
+  readonly id: string;
+  readonly latitude: number;
+  readonly longitude: number;
+  readonly title: string;
+  readonly imageUrl?: string;
+  readonly date: string;
+  readonly dateLabel: string;
+  readonly detailPath: string[];
+  readonly markerColor: string;
 }
