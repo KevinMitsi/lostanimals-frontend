@@ -6,9 +6,8 @@ import { IdResponse, RegisterPushSubscriptionRequest } from '../../core/models';
 
 /**
  * Mapea 1:1 los endpoints de `/api/v1/push-subscriptions` (sección 3.10 del contrato).
- * El servicio queda listo para cuando se integre un proveedor de push real (FCM u otro);
- * hoy no hay infraestructura de push configurada en el proyecto, así que la UI que lo
- * consume (ver ProfilePage) se deja como placeholder deshabilitado — ver nota de la sección 3.10.
+ * El `deviceToken` proviene de Firebase Cloud Messaging; ver `PushNotificationService`
+ * para el flujo completo de permiso + token + registro/baja.
  */
 @Injectable({ providedIn: 'root' })
 export class PushSubscriptionService {

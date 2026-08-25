@@ -2,13 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import {
-  ConversationResponse,
-  IdResponse,
-  MessagePageResponse,
-  ReportConversationRequest,
-  SendMessageRequest,
-} from '../../core/models';
+import { ConversationResponse, IdResponse, MessagePageResponse, ReportConversationRequest } from '../../core/models';
 
 /** Mapea 1:1 los endpoints de `/api/v1/conversations` (sección 3.6 del contrato). Todo autenticado. */
 @Injectable({ providedIn: 'root' })
@@ -26,10 +20,6 @@ export class ConversationService {
       params = params.set('after', after);
     }
     return this.http.get<MessagePageResponse>(`${this.base}/${conversationId}/messages`, { params });
-  }
-
-  sendMessage(conversationId: string, request: SendMessageRequest): Observable<IdResponse> {
-    return this.http.post<IdResponse>(`${this.base}/${conversationId}/messages`, request);
   }
 
   close(conversationId: string): Observable<void> {

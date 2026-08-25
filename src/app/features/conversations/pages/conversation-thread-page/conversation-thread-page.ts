@@ -3,16 +3,20 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signa
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { timer } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
 import { SessionStore } from '../../../../core/auth/session.store';
 import { AppApiError } from '../../../../core/http/problem-detail.util';
 import { NotificationService } from '../../../../core/notifications/notification.service';
 import { ConversationResponse, MessageResponse } from '../../../../core/models';
 import { containsPhoneNumber } from '../../../../core/validators/validators';
+import { ConversationSocketService } from '../../conversation-socket.service';
 import { ConversationService } from '../../conversation.service';
 
-const POLL_INTERVAL_MS = 6000;
+const ERROR_FRAME_MESSAGES: Record<string, string> = {
+  PAYLOAD_TOO_LARGE: 'El mensaje es demasiado largo.',
+  VALIDATION_ERROR: 'Revisa el mensaje: no se pudo enviar.',
+  FORBIDDEN: 'No tienes permiso para escribir en esta conversación.',
+  NOT_FOUND: 'Esta conversación ya no existe.',
+};
 
 @Component({
   selector: 'app-conversation-thread-page',
@@ -58,7 +62,9 @@ const POLL_INTERVAL_MS = 6000;
       @if (conversation()?.status === 'OPEN') {
         <form [formGroup]="messageForm" (ngSubmit)="send()" class="flex gap-2">
           <input formControlName="content" class="field-input flex-1" placeholder="Escribe un mensaje…" />
-          <button type="submit" [disabled]="messageForm.invalid || sending()" class="btn btn-primary">Enviar</button>
+          <button type="submit" [disabled]="messageForm.invalid || !connected()" class="btn btn-primary">
+            {{ connected() ? 'Enviar' : 'Conectando…' }}
+          </button>
         </form>
       }
 
@@ -90,6 +96,7 @@ const POLL_INTERVAL_MS = 6000;
 export class ConversationThreadPage {
   private readonly route = inject(ActivatedRoute);
   private readonly conversationService = inject(ConversationService);
+  private readonly socket = inject(ConversationSocketService);
   private readonly session = inject(SessionStore);
   private readonly notifications = inject(NotificationService);
   private readonly fb = inject(FormBuilder);
@@ -99,7 +106,7 @@ export class ConversationThreadPage {
 
   protected readonly conversation = signal<ConversationResponse | undefined>(undefined);
   protected readonly messages = signal<MessageResponse[]>([]);
-  protected readonly sending = signal(false);
+  protected readonly connected = signal(false);
   protected readonly formError = signal<string | null>(null);
   protected readonly reportOpen = signal(false);
 
@@ -120,24 +127,26 @@ export class ConversationThreadPage {
       this.conversation.set(conversations.find((c) => c.id === this.conversationId));
     });
 
-    timer(0, POLL_INTERVAL_MS)
-      .pipe(
-        switchMap(() => this.conversationService.getMessages(this.conversationId, this.cursor ?? undefined)),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe({
-        next: (page) => {
-          if (page.items.length > 0) {
-            this.messages.update((list) => {
-              const existingIds = new Set(list.map((m) => m.id));
-              return [...list, ...page.items.filter((item) => !existingIds.has(item.id))];
-            });
-          }
-          if (page.nextAfter) {
-            this.cursor = page.nextAfter;
-          }
-        },
-      });
+    this.loadHistory();
+
+    this.socket.messages$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((message) => {
+      this.appendMessages([message]);
+    });
+
+    this.socket.errors$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((error) => {
+      this.formError.set(ERROR_FRAME_MESSAGES[error.code] ?? 'No se pudo enviar el mensaje.');
+    });
+
+    this.socket.reconnected$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.loadHistory();
+    });
+
+    this.socket.connectionState$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((isOpen) => {
+      this.connected.set(isOpen);
+    });
+
+    this.socket.connect(this.conversationId);
+    this.destroyRef.onDestroy(() => this.socket.disconnect());
   }
 
   protected otherParticipant(): string {
@@ -166,22 +175,13 @@ export class ConversationThreadPage {
     }
 
     this.formError.set(null);
-    this.sending.set(true);
-
-    this.conversationService.sendMessage(this.conversationId, { content: text }).subscribe({
-      next: (response) => {
-        this.sending.set(false);
-        this.messageForm.reset({ content: '' });
-        this.messages.update((list) => [
-          ...list,
-          { id: response.id, senderId: this.userId() ?? '', content: text, createdAt: new Date().toISOString() },
-        ]);
-      },
-      error: (error: AppApiError) => {
-        this.sending.set(false);
-        this.formError.set(error.detail);
-      },
-    });
+    const sent = this.socket.send(text);
+    if (!sent) {
+      this.formError.set('Se perdió la conexión en tiempo real. Espera a que se reconecte e intenta de nuevo.');
+      return;
+    }
+    // El servidor difunde el mensaje persistido a este mismo socket; no se agrega copia optimista.
+    this.messageForm.reset({ content: '' });
   }
 
   protected close(): void {
@@ -221,5 +221,25 @@ export class ConversationThreadPage {
     if (current) {
       this.conversation.set({ ...current, status });
     }
+  }
+
+  private loadHistory(): void {
+    this.conversationService.getMessages(this.conversationId, this.cursor ?? undefined).subscribe((page) => {
+      this.appendMessages(page.items);
+      if (page.nextAfter) {
+        this.cursor = page.nextAfter;
+      }
+    });
+  }
+
+  private appendMessages(items: readonly MessageResponse[]): void {
+    if (items.length === 0) {
+      return;
+    }
+    this.messages.update((list) => {
+      const existingIds = new Set(list.map((m) => m.id));
+      const fresh = items.filter((item) => !existingIds.has(item.id));
+      return fresh.length > 0 ? [...list, ...fresh] : list;
+    });
   }
 }

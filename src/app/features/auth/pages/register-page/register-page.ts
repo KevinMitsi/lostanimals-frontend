@@ -291,10 +291,18 @@ export class RegisterPage {
     }
 
     if (error.status === 400 && error.errors) {
+      const unmatched: string[] = [];
       for (const entry of error.errors) {
         const { field, message } = splitFieldError(entry);
-        const control = this.form.get(field);
-        control?.setErrors({ ...(control.errors ?? {}), server: message });
+        const control = field ? this.form.get(field) : null;
+        if (control) {
+          control.setErrors({ ...(control.errors ?? {}), server: message });
+        } else {
+          unmatched.push(message);
+        }
+      }
+      if (unmatched.length > 0) {
+        this.formError.set(unmatched.join(' '));
       }
       return;
     }

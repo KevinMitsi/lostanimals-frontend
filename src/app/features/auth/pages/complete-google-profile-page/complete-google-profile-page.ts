@@ -86,9 +86,18 @@ export class CompleteGoogleProfilePage {
       error: (error: AppApiError) => {
         this.submitting.set(false);
         if (error.status === 400 && error.errors) {
+          const unmatched: string[] = [];
           for (const entry of error.errors) {
             const { field, message } = splitFieldError(entry);
-            this.form.get(field)?.setErrors({ server: message });
+            const control = field ? this.form.get(field) : null;
+            if (control) {
+              control.setErrors({ server: message });
+            } else {
+              unmatched.push(message);
+            }
+          }
+          if (unmatched.length > 0) {
+            this.formError.set(unmatched.join(' '));
           }
         } else {
           this.formError.set(error.detail);
