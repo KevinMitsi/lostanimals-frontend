@@ -8,6 +8,7 @@ import {
   documentNumberValidator,
   passwordComplexityValidator,
 } from '../../../../core/validators/validators';
+import { DataPolicyModal } from '../../../../shared/components/data-policy-modal/data-policy-modal';
 import { PasswordStrengthChecklist } from '../../../../shared/components/password-strength-checklist/password-strength-checklist';
 import { TermsModal } from '../../../../shared/components/terms-modal/terms-modal';
 import { TurnstileWidget } from '../../../../shared/components/turnstile-widget/turnstile-widget';
@@ -30,6 +31,7 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
     TurnstileWidget,
     GoogleAuthButton,
     TermsModal,
+    DataPolicyModal,
     PasswordStrengthChecklist,
     PhoneInput,
   ],
@@ -137,7 +139,12 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
           </p>
           <label class="flex min-h-[44px] items-center gap-2 text-sm">
             <input type="checkbox" formControlName="acceptsDataProcessing" class="checkbox" />
-            Acepto el tratamiento de mis datos personales.
+            <span>
+              Acepto el tratamiento de mis datos personales. Ver
+              <button type="button" (click)="dataPolicyModal().open()" class="btn-link inline">
+                política de tratamiento de datos
+              </button>
+            </span>
           </label>
           @if (isInvalid('acceptsDataProcessing')) {
             <span class="-mt-2 text-xs text-[var(--color-alert-strong)]">
@@ -178,6 +185,7 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
       }
 
       <app-terms-modal #termsModalRef />
+      <app-data-policy-modal #dataPolicyModalRef />
     </div>
   `,
 })
@@ -189,6 +197,7 @@ export class RegisterPage {
 
   private readonly turnstileWidget = viewChild<TurnstileWidget>('turnstile');
   protected readonly termsModal = viewChild.required<TermsModal>('termsModalRef');
+  protected readonly dataPolicyModal = viewChild.required<DataPolicyModal>('dataPolicyModalRef');
 
   protected readonly submitting = signal(false);
   protected readonly registered = signal(false);

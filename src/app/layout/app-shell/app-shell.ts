@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { SessionStore } from '../../core/auth/session.store';
+import { AgeGateModal } from '../../shared/components/age-gate-modal/age-gate-modal';
 import { NavIcon, NavIconName } from '../../shared/components/nav-icon/nav-icon';
 import { ToastContainer } from '../../shared/components/toast-container/toast-container';
 
@@ -13,11 +14,12 @@ interface NavItem {
 @Component({
   selector: 'app-shell',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ToastContainer, NavIcon],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ToastContainer, NavIcon, AgeGateModal],
   host: {
     class: 'flex min-h-screen flex-col bg-[var(--color-background)] text-[var(--color-text)]',
   },
   template: `
+    <app-age-gate-modal />
     <app-toast-container />
 
     <header class="hidden grid-cols-3 items-center px-6 py-4 lg:grid">
