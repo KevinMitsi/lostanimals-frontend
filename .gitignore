@@ -38,6 +38,7 @@ testem.log
 /typings
 __screenshots__/
 /public/runtime-config.js
+/public/firebase-messaging-sw.js
 
 # System files
 .DS_Store

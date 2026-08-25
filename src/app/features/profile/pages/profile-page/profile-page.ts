@@ -4,6 +4,7 @@ import { SessionStore } from '../../../../core/auth/session.store';
 import { USER_ROLE_LABELS } from '../../../../core/labels/labels';
 import { AuthService } from '../../../auth/auth.service';
 import { ContactRequestService } from '../../../contact-requests/contact-request.service';
+import { PushNotificationService } from '../../../push-subscriptions/push-notification.service';
 
 @Component({
   selector: 'app-profile-page',
@@ -39,16 +40,47 @@ import { ContactRequestService } from '../../../contact-requests/contact-request
 
       <div class="card flex flex-col gap-2">
         <h2 class="text-lg font-bold tracking-tight text-[var(--color-primary-strong)]">Notificaciones push</h2>
-        <label class="flex items-center gap-3 text-sm opacity-60">
-          <input type="checkbox" disabled class="h-5 w-5" />
-          Activar notificaciones
-        </label>
-        <p class="text-xs text-[var(--color-text)] opacity-70">
-          Próximamente. El servicio ya está conectado al backend
-          (<code>/push-subscriptions</code>), pero falta integrar un proveedor de push
-          (Firebase Cloud Messaging u otro) en este proyecto para poder generar un token de
-          dispositivo real.
-        </p>
+        @if (!push.configured) {
+          <label class="flex items-center gap-3 text-sm opacity-60">
+            <input type="checkbox" disabled class="h-5 w-5" />
+            Activar notificaciones
+          </label>
+          <p class="text-xs text-[var(--color-text)] opacity-70">
+            Las notificaciones push no están configuradas en este entorno.
+          </p>
+        } @else if (push.state() === 'unsupported') {
+          <label class="flex items-center gap-3 text-sm opacity-60">
+            <input type="checkbox" disabled class="h-5 w-5" />
+            Activar notificaciones
+          </label>
+          <p class="text-xs text-[var(--color-text)] opacity-70">
+            Tu navegador no admite notificaciones push.
+          </p>
+        } @else if (push.state() === 'denied') {
+          <label class="flex items-center gap-3 text-sm opacity-60">
+            <input type="checkbox" disabled class="h-5 w-5" />
+            Activar notificaciones
+          </label>
+          <p class="text-xs text-[var(--color-text)] opacity-70">
+            Bloqueaste las notificaciones para este sitio. Actívalas desde la configuración de tu
+            navegador si quieres recibirlas.
+          </p>
+        } @else {
+          <label class="flex items-center gap-3 text-sm">
+            <input
+              type="checkbox"
+              [checked]="push.subscribed()"
+              [disabled]="push.busy()"
+              (change)="onTogglePush($any($event.target).checked)"
+              class="h-5 w-5"
+            />
+            Activar notificaciones
+          </label>
+          <p class="text-xs text-[var(--color-text)] opacity-70">
+            Recibe un aviso cuando alguien te escriba o haya novedades sobre tus reportes y
+            avistamientos.
+          </p>
+        }
       </div>
 
       <button type="button" (click)="logout()" class="btn btn-alert self-start">Cerrar sesión</button>
@@ -58,6 +90,7 @@ import { ContactRequestService } from '../../../contact-requests/contact-request
 export class ProfilePage {
   protected readonly session = inject(SessionStore);
   protected readonly roleLabels = USER_ROLE_LABELS;
+  protected readonly push = inject(PushNotificationService);
 
   private readonly authService = inject(AuthService);
   private readonly contactRequestService = inject(ContactRequestService);
@@ -72,6 +105,14 @@ export class ProfilePage {
         this.pendingRequestCount.set(requests.filter((r) => r.status === 'PENDING').length);
       },
     });
+  }
+
+  protected onTogglePush(checked: boolean): void {
+    if (checked) {
+      void this.push.enable();
+    } else {
+      this.push.disable();
+    }
   }
 
   protected logout(): void {
