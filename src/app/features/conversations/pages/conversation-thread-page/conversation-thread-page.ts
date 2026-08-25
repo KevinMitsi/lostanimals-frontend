@@ -1,8 +1,18 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  computed,
+  effect,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { SessionStore } from '../../../../core/auth/session.store';
 import { AppApiError } from '../../../../core/http/problem-detail.util';
 import { NotificationService } from '../../../../core/notifications/notification.service';
@@ -18,41 +28,69 @@ const ERROR_FRAME_MESSAGES: Record<string, string> = {
   NOT_FOUND: 'Esta conversación ya no existe.',
 };
 
+interface ChatMessageEntry extends MessageResponse {
+  readonly kind: 'message';
+}
+
+/** Aviso local (nunca se envía al servidor ni lo ve la otra persona). */
+interface ChatWarningEntry {
+  readonly id: string;
+  readonly kind: 'warning';
+  readonly content: string;
+  readonly createdAt: string;
+}
+
+type ChatEntry = ChatMessageEntry | ChatWarningEntry;
+
 @Component({
   selector: 'app-conversation-thread-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, ReactiveFormsModule],
+  imports: [DatePipe, ReactiveFormsModule, RouterLink],
   template: `
     <div class="mx-auto flex h-full max-w-2xl flex-col gap-3 px-4 py-6">
       <div class="flex items-center justify-between gap-2">
         <h1 class="text-xl font-bold tracking-tight text-[var(--color-primary-strong)]">
           {{ otherParticipant() }}
         </h1>
-        @if (conversation(); as conversation) {
-          @if (conversation.status === 'OPEN') {
-            <div class="flex gap-2">
-              <button type="button" (click)="close()" class="btn btn-ghost">Cerrar</button>
+        <div class="flex flex-wrap items-center justify-end gap-2">
+          <a routerLink="/conversations" class="btn btn-ghost">Salir</a>
+          @if (conversation(); as conversation) {
+            @if (conversation.status === 'OPEN') {
+              <button type="button" (click)="openEndConversationPrompt()" class="btn btn-ghost">
+                Terminar conversación
+              </button>
               <button type="button" (click)="block()" class="btn btn-alert">Bloquear</button>
-            </div>
-          } @else {
-            <span class="badge bg-[var(--color-surface)]">Conversación cerrada</span>
+            } @else {
+              <span class="badge bg-[var(--color-surface)]">Conversación cerrada</span>
+            }
           }
-        }
+        </div>
       </div>
 
       @if (formError()) {
         <p class="banner-alert">{{ formError() }}</p>
       }
 
-      <div class="flex flex-1 flex-col gap-2 overflow-y-auto rounded-2xl bg-white p-4 shadow-[0_2px_14px_rgba(47,54,59,0.08)]">
-        @for (message of messages(); track message.id) {
-          <div
-            class="max-w-[75%] rounded-2xl px-3 py-2 text-sm"
-            [class]="isMine(message) ? 'ml-auto bg-[var(--color-primary-strong)] text-[var(--color-on-primary)]' : 'bg-[var(--color-surface)] text-[var(--color-text)]'"
-          >
-            <p>{{ message.content }}</p>
-            <p class="mt-1 text-[10px] opacity-70">{{ message.createdAt | date: 'shortTime' }}</p>
-          </div>
+      <div
+        #messageList
+        class="flex max-h-[60dvh] flex-col gap-2 overflow-y-auto rounded-2xl bg-white p-4 shadow-[0_2px_14px_rgba(47,54,59,0.08)]"
+      >
+        @for (entry of messages(); track entry.id) {
+          @if (entry.kind === 'warning') {
+            <div
+              class="mx-auto max-w-[85%] rounded-xl bg-[var(--color-alert)]/15 px-3 py-2 text-center text-xs text-[var(--color-alert-strong)]"
+            >
+              ⚠️ {{ entry.content }}
+            </div>
+          } @else {
+            <div
+              class="max-w-[75%] rounded-2xl px-3 py-2 text-sm"
+              [class]="isMine(entry) ? 'ml-auto bg-[var(--color-primary-strong)] text-[var(--color-on-primary)]' : 'bg-[var(--color-surface)] text-[var(--color-text)]'"
+            >
+              <p>{{ entry.content }}</p>
+              <p class="mt-1 text-[10px] opacity-70">{{ entry.createdAt | date: 'shortTime' }}</p>
+            </div>
+          }
         }
         @if (messages().length === 0) {
           <p class="text-center text-sm text-[var(--color-text)]">Aún no hay mensajes.</p>
@@ -91,6 +129,40 @@ const ERROR_FRAME_MESSAGES: Record<string, string> = {
         </form>
       }
     </div>
+
+    @if (endConversationPromptOpen()) {
+      <div class="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+        <div class="card flex w-full max-w-sm flex-col gap-3">
+          <h2 class="text-lg font-bold tracking-tight text-[var(--color-alert-strong)]">Terminar conversación</h2>
+          <p class="text-sm text-[var(--color-text)]">
+            Ya no podrás contactar más con esta persona a menos que vuelva a generarse una nueva
+            solicitud de contacto.
+          </p>
+          <label class="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              [checked]="endConversationAgreed()"
+              (change)="endConversationAgreed.set($any($event.target).checked)"
+              class="checkbox"
+            />
+            Estoy de acuerdo
+          </label>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              [disabled]="!endConversationAgreed()"
+              (click)="confirmEndConversation()"
+              class="btn btn-alert flex-1"
+            >
+              Terminar conversación
+            </button>
+            <button type="button" (click)="endConversationPromptOpen.set(false)" class="btn btn-ghost flex-1">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    }
   `,
 })
 export class ConversationThreadPage {
@@ -103,12 +175,15 @@ export class ConversationThreadPage {
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly conversationId = this.route.snapshot.paramMap.get('id')!;
+  private readonly messageList = viewChild<ElementRef<HTMLDivElement>>('messageList');
 
   protected readonly conversation = signal<ConversationResponse | undefined>(undefined);
-  protected readonly messages = signal<MessageResponse[]>([]);
+  protected readonly messages = signal<ChatEntry[]>([]);
   protected readonly connected = signal(false);
   protected readonly formError = signal<string | null>(null);
   protected readonly reportOpen = signal(false);
+  protected readonly endConversationPromptOpen = signal(false);
+  protected readonly endConversationAgreed = signal(false);
 
   protected readonly messageForm = this.fb.nonNullable.group({
     content: ['', [Validators.required, Validators.maxLength(2000)]],
@@ -147,6 +222,16 @@ export class ConversationThreadPage {
 
     this.socket.connect(this.conversationId);
     this.destroyRef.onDestroy(() => this.socket.disconnect());
+
+    effect(() => {
+      this.messages();
+      queueMicrotask(() => {
+        const el = this.messageList()?.nativeElement;
+        if (el) {
+          el.scrollTop = el.scrollHeight;
+        }
+      });
+    });
   }
 
   protected otherParticipant(): string {
@@ -158,7 +243,7 @@ export class ConversationThreadPage {
     return other?.displayName ?? conversation.participants[0]?.displayName ?? 'Usuario';
   }
 
-  protected isMine(message: MessageResponse): boolean {
+  protected isMine(message: ChatMessageEntry): boolean {
     return message.senderId === this.userId();
   }
 
@@ -169,7 +254,9 @@ export class ConversationThreadPage {
     const text = this.messageForm.getRawValue().content;
 
     if (containsPhoneNumber(text)) {
-      this.formError.set('Por seguridad, no es posible enviar números de teléfono por este medio.');
+      this.appendLocalWarning(
+        'No es posible enviar información sensible, como números de teléfono, por este medio. Este aviso solo lo puedes ver tú.',
+      );
       this.messageForm.reset({ content: '' });
       return;
     }
@@ -184,9 +271,20 @@ export class ConversationThreadPage {
     this.messageForm.reset({ content: '' });
   }
 
-  protected close(): void {
+  protected openEndConversationPrompt(): void {
+    this.endConversationAgreed.set(false);
+    this.endConversationPromptOpen.set(true);
+  }
+
+  protected confirmEndConversation(): void {
+    if (!this.endConversationAgreed()) {
+      return;
+    }
     this.conversationService.close(this.conversationId).subscribe({
-      next: () => this.patchStatus('CLOSED'),
+      next: () => {
+        this.patchStatus('CLOSED');
+        this.endConversationPromptOpen.set(false);
+      },
       error: (error: AppApiError) => this.formError.set(error.detail),
     });
   }
@@ -237,9 +335,23 @@ export class ConversationThreadPage {
       return;
     }
     this.messages.update((list) => {
-      const existingIds = new Set(list.map((m) => m.id));
-      const fresh = items.filter((item) => !existingIds.has(item.id));
+      const existingIds = new Set(
+        list.filter((entry): entry is ChatMessageEntry => entry.kind === 'message').map((m) => m.id),
+      );
+      const fresh: ChatEntry[] = items
+        .filter((item) => !existingIds.has(item.id))
+        .map((item) => ({ ...item, kind: 'message' }));
       return fresh.length > 0 ? [...list, ...fresh] : list;
     });
+  }
+
+  private appendLocalWarning(content: string): void {
+    const entry: ChatWarningEntry = {
+      id: crypto.randomUUID(),
+      kind: 'warning',
+      content,
+      createdAt: new Date().toISOString(),
+    };
+    this.messages.update((list) => [...list, entry]);
   }
 }
