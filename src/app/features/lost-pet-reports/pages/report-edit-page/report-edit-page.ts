@@ -165,9 +165,9 @@ export class ReportEditPage {
     description: ['', [Validators.required, Validators.maxLength(2000)]],
     disappearedAt: ['', [Validators.required, notInFutureValidator()]],
     location: this.fb.nonNullable.control<GeographyLocationValue>({
-      departmentId: null,
-      cityId: null,
-      neighborhoodId: null,
+      departmentCode: null,
+      municipalityCode: null,
+      neighborhood: '',
     }),
   });
 
@@ -187,7 +187,11 @@ export class ReportEditPage {
           species: report.species,
           description: report.description,
           disappearedAt: report.disappearedAt.slice(0, 16),
-          location: { departmentId: null, cityId: null, neighborhoodId: report.neighborhoodId },
+          location: {
+            departmentCode: report.departmentCode,
+            municipalityCode: report.municipalityCode,
+            neighborhood: report.neighborhood,
+          },
         });
       },
       error: () => this.formError.set('No se pudo cargar el reporte.'),
@@ -204,8 +208,12 @@ export class ReportEditPage {
     }
 
     const value = this.form.getRawValue();
-    if (!value.location.neighborhoodId) {
-      this.formError.set('Selecciona un barrio.');
+    if (
+      !value.location.departmentCode ||
+      !value.location.municipalityCode ||
+      !value.location.neighborhood.trim()
+    ) {
+      this.formError.set('Selecciona el departamento y municipio, y escribe el barrio.');
       return;
     }
 
@@ -216,7 +224,9 @@ export class ReportEditPage {
       disappearedAt: new Date(value.disappearedAt).toISOString(),
       latitude: this.report()!.latitude,
       longitude: this.report()!.longitude,
-      neighborhoodId: value.location.neighborhoodId,
+      departmentCode: value.location.departmentCode,
+      municipalityCode: value.location.municipalityCode,
+      neighborhood: value.location.neighborhood.trim(),
     };
 
     this.submitting.set(true);

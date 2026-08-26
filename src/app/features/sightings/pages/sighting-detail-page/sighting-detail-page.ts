@@ -4,13 +4,13 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { SIGHTING_STATUS_LABELS, SPECIES_LABELS } from '../../../../core/labels/labels';
 import { SightingResponse } from '../../../../core/models';
 import { ContactRequestButton } from '../../../../shared/components/contact-request-button/contact-request-button';
-import { NeighborhoodLabel } from '../../../../shared/components/neighborhood-label/neighborhood-label';
+import { LocationLabel } from '../../../../shared/components/neighborhood-label/location-label';
 import { SightingService } from '../../sighting.service';
 
 @Component({
   selector: 'app-sighting-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, ContactRequestButton, NeighborhoodLabel],
+  imports: [DatePipe, RouterLink, ContactRequestButton, LocationLabel],
   template: `
     @if (sighting(); as sighting) {
       <div class="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6">
@@ -38,7 +38,11 @@ import { SightingService } from '../../sighting.service';
           Visto el {{ sighting.observedAt | date: 'medium' }}
         </p>
         <p class="text-xs text-[var(--color-text)] opacity-70">
-          <app-neighborhood-label [neighborhoodId]="sighting.neighborhoodId" />
+          <app-location-label
+            [departmentCode]="sighting.departmentCode"
+            [municipalityCode]="sighting.municipalityCode"
+            [neighborhood]="sighting.neighborhood"
+          />
         </p>
 
         <app-contact-request-button publicationType="SIGHTING" [publicationId]="sighting.id" />

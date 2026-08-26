@@ -11,7 +11,11 @@ import { ReportCard } from '../../components/report-card/report-card';
 import { LostPetReportService } from '../../lost-pet-report.service';
 import { NearbyLostPetsMap } from '../../components/nearby-lost-pets-map/nearby-lost-pets-map';
 
-const EMPTY_LOCATION: GeographyLocationValue = { departmentId: null, cityId: null, neighborhoodId: null };
+const EMPTY_LOCATION: GeographyLocationValue = {
+  departmentCode: null,
+  municipalityCode: null,
+  neighborhood: '',
+};
 const DEFAULT_RADIUS_METERS = 5000;
 
 @Component({
@@ -185,7 +189,8 @@ export class ReportListPage {
 
   protected activeFilterCount(): number {
     const { species, status, location, from, to } = this.filtersForm.getRawValue();
-    return [species, status, location.neighborhoodId, from, to, this.locationCoords()].filter(Boolean).length;
+    const territorialFilter = location.neighborhood || location.municipalityCode || location.departmentCode;
+    return [species, status, territorialFilter, from, to, this.locationCoords()].filter(Boolean).length;
   }
 
   protected loadMore(): void {
@@ -200,9 +205,9 @@ export class ReportListPage {
     const filters: ReportSearchRequest = {
       species: (species || undefined) as SpeciesDto | undefined,
       status: (status || undefined) as ReportStatusDto | undefined,
-      departmentId: location.departmentId ?? undefined,
-      cityId: location.cityId ?? undefined,
-      neighborhoodId: location.neighborhoodId ?? undefined,
+      departmentCode: location.departmentCode ?? undefined,
+      municipalityCode: location.municipalityCode ?? undefined,
+      neighborhood: location.neighborhood.trim() || undefined,
       from: from ? new Date(from).toISOString() : undefined,
       to: to ? new Date(to).toISOString() : undefined,
       latitude: coords?.latitude,

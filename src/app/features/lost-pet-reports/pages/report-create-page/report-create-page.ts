@@ -14,7 +14,11 @@ import { ImagePicker } from '../../../../shared/components/image-picker/image-pi
 import { SightingMap } from '../../../../shared/components/sighting-map/sighting-map';
 import { LostPetReportService } from '../../lost-pet-report.service';
 
-const EMPTY_LOCATION: GeographyLocationValue = { departmentId: null, cityId: null, neighborhoodId: null };
+const EMPTY_LOCATION: GeographyLocationValue = {
+  departmentCode: null,
+  municipalityCode: null,
+  neighborhood: '',
+};
 const STEP_LABELS = ['Datos', 'Ubicación', 'Imágenes', 'Confirmar'] as const;
 
 @Component({
@@ -223,7 +227,13 @@ export class ReportCreatePage {
           new Date(value.disappearedAt).getTime() <= Date.now()
         );
       case 1:
-        return !!value.location.neighborhoodId && this.latitude() !== null && this.longitude() !== null;
+        return (
+          !!value.location.departmentCode &&
+          !!value.location.municipalityCode &&
+          !!value.location.neighborhood.trim() &&
+          this.latitude() !== null &&
+          this.longitude() !== null
+        );
       case 2:
         return value.imageKeys.length >= 1 && value.imageKeys.length <= 5;
       default:
@@ -252,7 +262,13 @@ export class ReportCreatePage {
     const latitude = this.latitude();
     const longitude = this.longitude();
 
-    if (!value.location.neighborhoodId || latitude === null || longitude === null) {
+    if (
+      !value.location.departmentCode ||
+      !value.location.municipalityCode ||
+      !value.location.neighborhood.trim() ||
+      latitude === null ||
+      longitude === null
+    ) {
       return;
     }
 
@@ -263,7 +279,9 @@ export class ReportCreatePage {
       disappearedAt: new Date(value.disappearedAt).toISOString(),
       latitude,
       longitude,
-      neighborhoodId: value.location.neighborhoodId,
+      departmentCode: value.location.departmentCode,
+      municipalityCode: value.location.municipalityCode,
+      neighborhood: value.location.neighborhood.trim(),
       imageKeys: value.imageKeys,
     };
 

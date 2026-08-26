@@ -14,7 +14,11 @@ import { GeoCoordinates, GeolocationService } from '../../../../core/location/ge
 import { notInFutureValidator, nowAsDatetimeLocal } from '../../../../core/validators/validators';
 import { SightingService } from '../../sighting.service';
 
-const EMPTY_LOCATION: GeographyLocationValue = { departmentId: null, cityId: null, neighborhoodId: null };
+const EMPTY_LOCATION: GeographyLocationValue = {
+  departmentCode: null,
+  municipalityCode: null,
+  neighborhood: '',
+};
 const STEP_LABELS = ['Datos', 'Ubicación', 'Imágenes', 'Confirmar'] as const;
 
 @Component({
@@ -219,7 +223,13 @@ export class SightingCreatePage {
           new Date(value.observedAt).getTime() <= Date.now()
         );
       case 1:
-        return !!value.location.neighborhoodId && this.latitude() !== null && this.longitude() !== null;
+        return (
+          !!value.location.departmentCode &&
+          !!value.location.municipalityCode &&
+          !!value.location.neighborhood.trim() &&
+          this.latitude() !== null &&
+          this.longitude() !== null
+        );
       case 2:
         return value.imageKeys.length >= 1 && value.imageKeys.length <= 5;
       default:
@@ -256,7 +266,13 @@ export class SightingCreatePage {
     const latitude = this.latitude();
     const longitude = this.longitude();
 
-    if (!value.location.neighborhoodId || latitude === null || longitude === null) {
+    if (
+      !value.location.departmentCode ||
+      !value.location.municipalityCode ||
+      !value.location.neighborhood.trim() ||
+      latitude === null ||
+      longitude === null
+    ) {
       return;
     }
 
@@ -266,7 +282,9 @@ export class SightingCreatePage {
       observedAt: new Date(value.observedAt).toISOString(),
       latitude,
       longitude,
-      neighborhoodId: value.location.neighborhoodId,
+      departmentCode: value.location.departmentCode,
+      municipalityCode: value.location.municipalityCode,
+      neighborhood: value.location.neighborhood.trim(),
       imageKeys: value.imageKeys,
       confirmPossibleDuplicate,
     };

@@ -5,6 +5,10 @@ import { REUNION_REVIEW_STATUS_LABELS } from '../../../../core/labels/labels';
 import { AppApiError } from '../../../../core/http/problem-detail.util';
 import { NotificationService } from '../../../../core/notifications/notification.service';
 import { ReunionReviewResponse, ServiceAreaResponse, UserRoleDto } from '../../../../core/models';
+import {
+  GeographyCascadeSelector,
+  GeographyLocationValue,
+} from '../../../../shared/components/geography-cascade-selector/geography-cascade-selector';
 import { AdminService } from '../../admin.service';
 
 type Tab = 'areas' | 'roles' | 'reunions';
@@ -12,7 +16,7 @@ type Tab = 'areas' | 'roles' | 'reunions';
 @Component({
   selector: 'app-admin-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, ReactiveFormsModule],
+  imports: [DatePipe, ReactiveFormsModule, GeographyCascadeSelector],
   template: `
     <div class="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6">
       <h1 class="text-3xl font-bold tracking-tight text-[var(--color-primary-strong)]">Panel de administración</h1>
@@ -49,6 +53,24 @@ type Tab = 'areas' | 'roles' | 'reunions';
       }
 
       @if (tab() === 'areas') {
+        <form [formGroup]="areaForm" (ngSubmit)="saveArea()" class="card flex flex-col gap-3">
+          <p class="text-xs text-[var(--color-text)] opacity-70">
+            Todos los municipios están habilitados por defecto. Agrega una configuración solo para bloquear o
+            restablecer un municipio concreto.
+          </p>
+          <app-geography-cascade-selector formControlName="location" [showNeighborhood]="false" />
+          <label class="field-label">
+            Disponibilidad
+            <select formControlName="enabled" class="field-input">
+              <option [ngValue]="false">Bloqueado</option>
+              <option [ngValue]="true">Habilitado</option>
+            </select>
+          </label>
+          <button type="submit" [disabled]="savingArea()" class="btn btn-primary self-start">
+            {{ savingArea() ? 'Guardando…' : 'Guardar configuración' }}
+          </button>
+        </form>
+
         @if (loadingAreas()) {
           <p class="text-center text-sm text-[var(--color-text)]">Cargando…</p>
         } @else if (serviceAreas().length === 0) {
@@ -56,15 +78,15 @@ type Tab = 'areas' | 'roles' | 'reunions';
         }
 
         <div class="flex flex-col gap-2">
-          @for (area of serviceAreas(); track area.cityId) {
+          @for (area of serviceAreas(); track area.municipalityCode) {
             <div class="card-soft flex items-center justify-between gap-2">
               <div class="flex flex-col">
-                <span class="font-semibold">{{ area.cityName }}</span>
-                <span class="text-xs text-[var(--color-text)] opacity-70">{{ area.departmentName }}</span>
+                <span class="font-semibold">Municipio {{ area.municipalityCode }}</span>
+                <span class="text-xs text-[var(--color-text)] opacity-70">Código DIVIPOLA</span>
               </div>
               <button
                 type="button"
-                [disabled]="pendingAreaId() === area.cityId"
+                [disabled]="pendingAreaId() === area.municipalityCode"
                 (click)="toggleArea(area)"
                 class="btn"
                 [class]="area.enabled ? 'btn-secondary' : 'btn-ghost'"
@@ -160,6 +182,15 @@ export class AdminPage {
   protected readonly serviceAreas = signal<ServiceAreaResponse[]>([]);
   protected readonly loadingAreas = signal(true);
   protected readonly pendingAreaId = signal<string | null>(null);
+  protected readonly savingArea = signal(false);
+  protected readonly areaForm = this.fb.nonNullable.group({
+    location: this.fb.nonNullable.control<GeographyLocationValue>({
+      departmentCode: null,
+      municipalityCode: null,
+      neighborhood: '',
+    }),
+    enabled: [false],
+  });
 
   protected readonly changingRole = signal(false);
   protected readonly roleForm = this.fb.nonNullable.group({
@@ -188,17 +219,49 @@ export class AdminPage {
 
   protected toggleArea(area: ServiceAreaResponse): void {
     this.formError.set(null);
-    this.pendingAreaId.set(area.cityId);
+    this.pendingAreaId.set(area.municipalityCode);
 
-    this.adminService.setServiceArea(area.cityId, !area.enabled).subscribe({
+    this.adminService.setServiceArea(area.municipalityCode, !area.enabled).subscribe({
       next: () => {
         this.pendingAreaId.set(null);
         this.serviceAreas.update((list) =>
-          list.map((a) => (a.cityId === area.cityId ? { ...a, enabled: !area.enabled } : a)),
+          list.map((a) =>
+            a.municipalityCode === area.municipalityCode ? { ...a, enabled: !area.enabled } : a,
+          ),
         );
       },
       error: (error: AppApiError) => {
         this.pendingAreaId.set(null);
+        this.formError.set(error.detail);
+      },
+    });
+  }
+
+  protected saveArea(): void {
+    const { location, enabled } = this.areaForm.getRawValue();
+    if (!location.municipalityCode) {
+      this.formError.set('Selecciona un departamento y un municipio.');
+      return;
+    }
+
+    this.formError.set(null);
+    this.savingArea.set(true);
+    this.adminService.setServiceArea(location.municipalityCode, enabled).subscribe({
+      next: () => {
+        this.savingArea.set(false);
+        this.serviceAreas.update((list) => {
+          const existing = list.some((area) => area.municipalityCode === location.municipalityCode);
+          if (existing) {
+            return list.map((area) =>
+              area.municipalityCode === location.municipalityCode ? { ...area, enabled } : area,
+            );
+          }
+          return [...list, { municipalityCode: location.municipalityCode!, enabled }];
+        });
+        this.notifications.success('Configuración municipal actualizada.');
+      },
+      error: (error: AppApiError) => {
+        this.savingArea.set(false);
         this.formError.set(error.detail);
       },
     });

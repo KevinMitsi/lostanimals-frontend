@@ -1,10 +1,7 @@
 import { UserRoleDto } from './auth.model';
 
 export interface ServiceAreaResponse {
-  cityId: string;
-  cityName: string;
-  departmentId: string;
-  departmentName: string;
+  municipalityCode: string;
   enabled: boolean;
 }
 

@@ -4,13 +4,13 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { REPORT_STATUS_LABELS, SPECIES_LABELS } from '../../../../core/labels/labels';
 import { LostPetReportResponse } from '../../../../core/models';
 import { ContactRequestButton } from '../../../../shared/components/contact-request-button/contact-request-button';
-import { NeighborhoodLabel } from '../../../../shared/components/neighborhood-label/neighborhood-label';
+import { LocationLabel } from '../../../../shared/components/neighborhood-label/location-label';
 import { LostPetReportService } from '../../lost-pet-report.service';
 
 @Component({
   selector: 'app-report-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, ContactRequestButton, NeighborhoodLabel],
+  imports: [DatePipe, RouterLink, ContactRequestButton, LocationLabel],
   template: `
     @if (report(); as report) {
       <div class="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6">
@@ -35,7 +35,11 @@ import { LostPetReportService } from '../../lost-pet-report.service';
           Desapareció el {{ report.disappearedAt | date: 'medium' }}
         </p>
         <p class="text-xs text-[var(--color-text)] opacity-70">
-          <app-neighborhood-label [neighborhoodId]="report.neighborhoodId" />
+          <app-location-label
+            [departmentCode]="report.departmentCode"
+            [municipalityCode]="report.municipalityCode"
+            [neighborhood]="report.neighborhood"
+          />
         </p>
 
         <app-contact-request-button publicationType="LOST_PET_REPORT" [publicationId]="report.id" />

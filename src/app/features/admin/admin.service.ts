@@ -21,9 +21,9 @@ export class AdminService {
     return this.http.get<ServiceAreaResponse[]>(`${this.base}/service-areas`);
   }
 
-  setServiceArea(cityId: string, enabled: boolean): Observable<void> {
+  setServiceArea(municipalityCode: string, enabled: boolean): Observable<void> {
     const request: SetServiceAreaRequest = { enabled };
-    return this.http.put<void>(`${this.base}/service-areas/${cityId}`, request);
+    return this.http.put<void>(`${this.base}/service-areas/${municipalityCode}`, request);
   }
 
   changeUserRole(userId: string, role: UserRoleDto): Observable<void> {
