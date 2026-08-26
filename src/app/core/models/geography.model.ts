@@ -1,25 +1,10 @@
 export interface DepartmentResponse {
-  id: string;
+  code: string;
   name: string;
 }
 
-export interface CityResponse {
-  id: string;
-  departmentId: string;
+export interface MunicipalityResponse {
+  code: string;
+  departmentCode: string;
   name: string;
-}
-
-export interface NeighborhoodResponse {
-  id: string;
-  cityId: string;
-  name: string;
-}
-
-export interface NeighborhoodDetailResponse {
-  departmentId: string;
-  departmentName: string;
-  cityId: string;
-  cityName: string;
-  neighborhoodId: string;
-  neighborhoodName: string;
 }

@@ -8,7 +8,9 @@ export interface CreateSightingRequest {
   observedAt: string;
   latitude: number;
   longitude: number;
-  neighborhoodId: string;
+  departmentCode: string;
+  municipalityCode: string;
+  neighborhood: string;
   imageKeys: string[];
   /** false en el primer intento; true al reenviar tras confirmar el warning de duplicado. */
   confirmPossibleDuplicate: boolean;
@@ -40,7 +42,9 @@ export interface SightingResponse {
   observedAt: string;
   latitude: number;
   longitude: number;
-  neighborhoodId: string;
+  departmentCode: string;
+  municipalityCode: string;
+  neighborhood: string;
   status: SightingStatusDto;
   images: SightingImageResponse[];
   createdAt: string;
@@ -59,14 +63,16 @@ export interface EditSightingRequest {
   observedAt: string;
   latitude: number;
   longitude: number;
-  neighborhoodId: string;
+  departmentCode: string;
+  municipalityCode: string;
+  neighborhood: string;
 }
 
 export interface SightingSearchRequest {
   species?: SpeciesDto;
-  departmentId?: string;
-  cityId?: string;
-  neighborhoodId?: string;
+  departmentCode?: string;
+  municipalityCode?: string;
+  neighborhood?: string;
   status?: SightingStatusDto;
   from?: string;
   to?: string;

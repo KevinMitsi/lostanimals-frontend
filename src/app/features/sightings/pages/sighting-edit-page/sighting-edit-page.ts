@@ -138,9 +138,9 @@ export class SightingEditPage {
     description: ['', [Validators.required, Validators.maxLength(2000)]],
     observedAt: ['', [Validators.required, notInFutureValidator()]],
     location: this.fb.nonNullable.control<GeographyLocationValue>({
-      departmentId: null,
-      cityId: null,
-      neighborhoodId: null,
+      departmentCode: null,
+      municipalityCode: null,
+      neighborhood: '',
     }),
   });
 
@@ -159,7 +159,11 @@ export class SightingEditPage {
           species: sighting.species,
           description: sighting.description,
           observedAt: sighting.observedAt.slice(0, 16),
-          location: { departmentId: null, cityId: null, neighborhoodId: sighting.neighborhoodId },
+          location: {
+            departmentCode: sighting.departmentCode,
+            municipalityCode: sighting.municipalityCode,
+            neighborhood: sighting.neighborhood,
+          },
         });
       },
       error: () => this.formError.set('No se pudo cargar el avistamiento.'),
@@ -176,8 +180,12 @@ export class SightingEditPage {
     }
 
     const value = this.form.getRawValue();
-    if (!value.location.neighborhoodId) {
-      this.formError.set('Selecciona un barrio.');
+    if (
+      !value.location.departmentCode ||
+      !value.location.municipalityCode ||
+      !value.location.neighborhood.trim()
+    ) {
+      this.formError.set('Selecciona el departamento y municipio, y escribe el barrio.');
       return;
     }
 
@@ -187,7 +195,9 @@ export class SightingEditPage {
       observedAt: new Date(value.observedAt).toISOString(),
       latitude: this.sighting()!.latitude,
       longitude: this.sighting()!.longitude,
-      neighborhoodId: value.location.neighborhoodId,
+      departmentCode: value.location.departmentCode,
+      municipalityCode: value.location.municipalityCode,
+      neighborhood: value.location.neighborhood.trim(),
     };
 
     this.submitting.set(true);

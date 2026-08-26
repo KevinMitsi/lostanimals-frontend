@@ -96,3 +96,22 @@ npm.cmd start
 ```
 
 La geolocalización del navegador requiere HTTPS (salvo `localhost`). El backend recibe la coordenada exacta al crear un avistamiento, pero los listados públicos retornan coordenadas aproximadas a tres decimales para reducir el riesgo de triangulación.
+
+## Catálogo DIVIPOLA de Colombia
+
+Los formularios consultan directamente el dataset oficial `gdxc-w37w` de Datos Abiertos Colombia mediante SODA3. El departamento y el municipio se guardan con sus códigos DIVIPOLA; el barrio permanece como texto libre.
+
+SODA3 identifica cada aplicación mediante un App Token público. Configura `SOCRATA_APP_TOKEN` en el entorno de build; `npm run build` lo incorpora a `runtime-config.js` como `socrataAppToken`. No uses aquí una API key con secreto ni credenciales de usuario.
+
+Para desarrollo local en PowerShell:
+
+```powershell
+$env:SOCRATA_APP_TOKEN='TU_APP_TOKEN_PUBLICO'
+npm.cmd start
+```
+
+En producción añade `SOCRATA_APP_TOKEN` a las variables de entorno del proveedor de despliegue. El frontend realiza peticiones `POST` a:
+
+```text
+https://www.datos.gov.co/api/v3/views/gdxc-w37w/query.json
+```

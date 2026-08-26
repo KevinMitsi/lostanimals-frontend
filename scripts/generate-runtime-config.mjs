@@ -6,6 +6,7 @@ const FIREBASE_SDK_VERSION = '12.18.0';
 const outputPath = resolve('public/runtime-config.js');
 const serviceWorkerPath = resolve('public/firebase-messaging-sw.js');
 const token = process.env.MAPBOX_PUBLIC_TOKEN?.trim() ?? '';
+const socrataAppToken = process.env.SOCRATA_APP_TOKEN?.trim() ?? '';
 
 if (token && !token.startsWith('pk.')) {
   throw new Error(
@@ -25,6 +26,7 @@ const firebaseVapidKey = process.env.FIREBASE_VAPID_KEY?.trim() ?? '';
 
 const config = JSON.stringify({
   mapboxPublicToken: token,
+  socrataAppToken,
   firebaseConfig,
   firebaseVapidKey,
 }).replaceAll('<', '\\u003c');

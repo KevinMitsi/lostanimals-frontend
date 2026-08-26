@@ -1,25 +1,16 @@
 import { ChangeDetectionStrategy, Component, forwardRef, inject, input, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { of, switchMap } from 'rxjs';
+import { catchError, finalize, of, switchMap, tap } from 'rxjs';
 import { GeographicCatalogService } from '../../../features/geography/geographic-catalog.service';
 
 export interface GeographyLocationValue {
-  departmentId: string | null;
-  cityId: string | null;
-  neighborhoodId: string | null;
+  departmentCode: string | null;
+  municipalityCode: string | null;
+  neighborhood: string;
 }
 
-/**
- * Selector en cascada departamento → ciudad → barrio, reutilizable como `formControlName`
- * en formularios de creación (reportes/avistamientos) y como filtro de búsqueda.
- * Con `[showNeighborhood]="false"` queda en departamento → ciudad, para el panel de admin
- * (áreas de servicio, que opera a nivel de ciudad).
- *
- * Si `writeValue` recibe solo `neighborhoodId` (ej. al editar un reporte/avistamiento ya
- * guardado), resuelve el departamento/ciudad correspondientes vía
- * `GET /geography/neighborhoods/{id}` para preseleccionar los tres selects.
- */
+/** Selector DIVIPOLA departamento → municipio, con barrio como texto libre opcional. */
 @Component({
   selector: 'app-geography-cascade-selector',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -36,12 +27,14 @@ export interface GeographyLocationValue {
         Departamento
         <select
           class="field-input"
-          [disabled]="disabled()"
+          [disabled]="disabled() || departmentsLoading()"
           (change)="onDepartmentChange($any($event.target).value)"
         >
-          <option value="" [selected]="!departmentId()">Selecciona…</option>
-          @for (department of departments(); track department.id) {
-            <option [value]="department.id" [selected]="department.id === departmentId()">
+          <option value="" [selected]="!departmentCode()">
+            {{ departmentsLoading() ? 'Cargando…' : 'Selecciona…' }}
+          </option>
+          @for (department of departments(); track department.code) {
+            <option [value]="department.code" [selected]="department.code === departmentCode()">
               {{ department.name }}
             </option>
           }
@@ -49,15 +42,19 @@ export interface GeographyLocationValue {
       </label>
 
       <label class="field-label flex-1">
-        Ciudad
+        Municipio
         <select
-          class="field-select"
-          [disabled]="disabled() || !departmentId()"
-          (change)="onCityChange($any($event.target).value)"
+          class="field-input"
+          [disabled]="disabled() || !departmentCode() || municipalitiesLoading()"
+          (change)="onMunicipalityChange($any($event.target).value)"
         >
-          <option value="" [selected]="!cityId()">Selecciona…</option>
-          @for (city of cities(); track city.id) {
-            <option [value]="city.id" [selected]="city.id === cityId()">{{ city.name }}</option>
+          <option value="" [selected]="!municipalityCode()">
+            {{ municipalitiesLoading() ? 'Cargando…' : 'Selecciona…' }}
+          </option>
+          @for (municipality of municipalities(); track municipality.code) {
+            <option [value]="municipality.code" [selected]="municipality.code === municipalityCode()">
+              {{ municipality.name }}
+            </option>
           }
         </select>
       </label>
@@ -65,21 +62,23 @@ export interface GeographyLocationValue {
       @if (showNeighborhood()) {
         <label class="field-label flex-1">
           Barrio
-          <select
-            class="field-select"
-            [disabled]="disabled() || !cityId()"
-            (change)="onNeighborhoodChange($any($event.target).value)"
-          >
-            <option value="" [selected]="!neighborhoodId()">Selecciona…</option>
-            @for (neighborhood of neighborhoods(); track neighborhood.id) {
-              <option [value]="neighborhood.id" [selected]="neighborhood.id === neighborhoodId()">
-                {{ neighborhood.name }}
-              </option>
-            }
-          </select>
+          <input
+            type="text"
+            class="field-input"
+            maxlength="120"
+            autocomplete="address-level3"
+            placeholder="Escribe el barrio"
+            [disabled]="disabled() || !municipalityCode()"
+            [value]="neighborhood()"
+            (input)="onNeighborhoodChange($any($event.target).value)"
+          />
         </label>
       }
     </div>
+
+    @if (catalogError()) {
+      <p class="mt-2 text-xs text-[var(--color-alert-strong)]">{{ catalogError() }}</p>
+    }
   `,
 })
 export class GeographyCascadeSelector implements ControlValueAccessor {
@@ -87,20 +86,47 @@ export class GeographyCascadeSelector implements ControlValueAccessor {
 
   private readonly catalog = inject(GeographicCatalogService);
 
-  protected readonly departmentId = signal<string | null>(null);
-  protected readonly cityId = signal<string | null>(null);
-  protected readonly neighborhoodId = signal<string | null>(null);
+  protected readonly departmentCode = signal<string | null>(null);
+  protected readonly municipalityCode = signal<string | null>(null);
+  protected readonly neighborhood = signal('');
   protected readonly disabled = signal(false);
+  protected readonly departmentsLoading = signal(true);
+  protected readonly municipalitiesLoading = signal(false);
+  protected readonly catalogError = signal<string | null>(null);
 
-  protected readonly departments = toSignal(this.catalog.getDepartments(), { initialValue: [] });
-
-  protected readonly cities = toSignal(
-    toObservable(this.departmentId).pipe(switchMap((id) => (id ? this.catalog.getCities(id) : of([])))),
+  protected readonly departments = toSignal(
+    this.catalog.getDepartments().pipe(
+      tap(() => {
+        this.departmentsLoading.set(false);
+        this.catalogError.set(null);
+      }),
+      catchError(() => {
+        this.departmentsLoading.set(false);
+        this.catalogError.set('No se pudieron cargar los departamentos. Intenta nuevamente.');
+        return of([]);
+      }),
+    ),
     { initialValue: [] },
   );
 
-  protected readonly neighborhoods = toSignal(
-    toObservable(this.cityId).pipe(switchMap((id) => (id ? this.catalog.getNeighborhoods(id) : of([])))),
+  protected readonly municipalities = toSignal(
+    toObservable(this.departmentCode).pipe(
+      switchMap((code) => {
+        if (!code) {
+          this.municipalitiesLoading.set(false);
+          return of([]);
+        }
+        this.municipalitiesLoading.set(true);
+        this.catalogError.set(null);
+        return this.catalog.getMunicipalities(code).pipe(
+          catchError(() => {
+            this.catalogError.set('No se pudieron cargar los municipios. Intenta nuevamente.');
+            return of([]);
+          }),
+          finalize(() => this.municipalitiesLoading.set(false)),
+        );
+      }),
+    ),
     { initialValue: [] },
   );
 
@@ -108,21 +134,9 @@ export class GeographyCascadeSelector implements ControlValueAccessor {
   private onTouched: () => void = () => {};
 
   writeValue(value: GeographyLocationValue | null): void {
-    if (value?.neighborhoodId && !value.departmentId && !value.cityId) {
-      this.departmentId.set(null);
-      this.cityId.set(null);
-      this.neighborhoodId.set(null);
-      this.catalog.getNeighborhoodDetail(value.neighborhoodId).subscribe((detail) => {
-        this.departmentId.set(detail.departmentId);
-        this.cityId.set(detail.cityId);
-        this.neighborhoodId.set(detail.neighborhoodId);
-      });
-      return;
-    }
-
-    this.departmentId.set(value?.departmentId ?? null);
-    this.cityId.set(value?.cityId ?? null);
-    this.neighborhoodId.set(value?.neighborhoodId ?? null);
+    this.departmentCode.set(value?.departmentCode ?? null);
+    this.municipalityCode.set(value?.municipalityCode ?? null);
+    this.neighborhood.set(value?.neighborhood ?? '');
   }
 
   registerOnChange(fn: (value: GeographyLocationValue) => void): void {
@@ -137,30 +151,30 @@ export class GeographyCascadeSelector implements ControlValueAccessor {
     this.disabled.set(isDisabled);
   }
 
-  protected onDepartmentChange(id: string): void {
-    this.departmentId.set(id || null);
-    this.cityId.set(null);
-    this.neighborhoodId.set(null);
+  protected onDepartmentChange(code: string): void {
+    this.departmentCode.set(code || null);
+    this.municipalityCode.set(null);
+    this.neighborhood.set('');
     this.emit();
   }
 
-  protected onCityChange(id: string): void {
-    this.cityId.set(id || null);
-    this.neighborhoodId.set(null);
+  protected onMunicipalityChange(code: string): void {
+    this.municipalityCode.set(code || null);
+    this.neighborhood.set('');
     this.emit();
   }
 
-  protected onNeighborhoodChange(id: string): void {
-    this.neighborhoodId.set(id || null);
+  protected onNeighborhoodChange(neighborhood: string): void {
+    this.neighborhood.set(neighborhood);
     this.emit();
   }
 
   private emit(): void {
     this.onTouched();
     this.onChange({
-      departmentId: this.departmentId(),
-      cityId: this.cityId(),
-      neighborhoodId: this.showNeighborhood() ? this.neighborhoodId() : null,
+      departmentCode: this.departmentCode(),
+      municipalityCode: this.municipalityCode(),
+      neighborhood: this.showNeighborhood() ? this.neighborhood() : '',
     });
   }
 }

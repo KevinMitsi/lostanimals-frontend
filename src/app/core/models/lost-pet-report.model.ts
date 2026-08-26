@@ -10,7 +10,9 @@ export interface CreateLostPetReportRequest {
   disappearedAt: string;
   latitude: number;
   longitude: number;
-  neighborhoodId: string;
+  departmentCode: string;
+  municipalityCode: string;
+  neighborhood: string;
   imageKeys: string[];
 }
 
@@ -33,7 +35,9 @@ export interface LostPetReportResponse {
   disappearedAt: string;
   latitude: number;
   longitude: number;
-  neighborhoodId: string;
+  departmentCode: string;
+  municipalityCode: string;
+  neighborhood: string;
   status: ReportStatusDto;
   images: LostPetImageResponse[];
   createdAt: string;
@@ -53,7 +57,9 @@ export interface EditLostPetReportRequest {
   disappearedAt: string;
   latitude: number;
   longitude: number;
-  neighborhoodId: string;
+  departmentCode: string;
+  municipalityCode: string;
+  neighborhood: string;
 }
 
 export interface CloseLostPetReportRequest {
@@ -62,9 +68,9 @@ export interface CloseLostPetReportRequest {
 
 export interface ReportSearchRequest {
   species?: SpeciesDto;
-  departmentId?: string;
-  cityId?: string;
-  neighborhoodId?: string;
+  departmentCode?: string;
+  municipalityCode?: string;
+  neighborhood?: string;
   status?: ReportStatusDto;
   from?: string;
   to?: string;

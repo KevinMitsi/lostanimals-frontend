@@ -11,6 +11,7 @@ export interface FirebaseWebConfig {
 
 export interface RuntimeConfig {
   readonly mapboxPublicToken: string;
+  readonly socrataAppToken: string;
   readonly firebaseConfig: FirebaseWebConfig;
   readonly firebaseVapidKey: string;
 }
@@ -34,6 +35,7 @@ export const RUNTIME_CONFIG = new InjectionToken<RuntimeConfig>('RUNTIME_CONFIG'
   providedIn: 'root',
   factory: () => ({
     mapboxPublicToken: window.__LOST_ANIMALS_CONFIG__?.mapboxPublicToken?.trim() ?? '',
+    socrataAppToken: window.__LOST_ANIMALS_CONFIG__?.socrataAppToken?.trim() ?? '',
     firebaseConfig: window.__LOST_ANIMALS_CONFIG__?.firebaseConfig ?? EMPTY_FIREBASE_CONFIG,
     firebaseVapidKey: window.__LOST_ANIMALS_CONFIG__?.firebaseVapidKey?.trim() ?? '',
   }),
